@@ -28,13 +28,15 @@ hasta que valga la pena publicarla.
 
 El corazón. Sin esto no hay producto.
 
-- `studies` como entidad central
-- Plantillas: `study_templates` → `template_stages` → `template_tasks`
-- Instanciación: crear un estudio **copia** la plantilla a `study_stages` / `study_tasks`
-- Plantilla semilla con las diez etapas: brief · diseño · convocatoria · logística ·
-  ejecución · procesamiento · análisis · revisión · entrega · cierre
-- Plazos como desfase en días respecto a la fecha de terreno (D14)
-- Vista de un estudio: en qué etapa va, qué falta para cerrarla, qué viene después
+- [x] `studies` como entidad central, con las sesiones colgando de ella
+- [x] Plantillas: `study_templates` → `template_stages` → `template_tasks` → archivos
+- [x] Instanciación por copia: `create_study_from_template()`
+- [x] Plantilla semilla con las diez etapas y sus 22 tareas
+- [x] Plazos como desfase respecto a la fecha de terreno, con recálculo al moverla (D14)
+- [x] Compuertas en la base: tarea bloqueante o archivo requerido impiden cerrar (D7)
+- [x] Código de sesión `d{día}b{bloque}` generado por la base
+- [ ] Tipos TypeScript del schema
+- [ ] Vista de un estudio: en qué etapa va, qué falta para cerrarla, qué viene después
 
 **Entregable:** crear un estudio desde la plantilla, verlo en su etapa actual, y
 avanzarlo a la siguiente.
