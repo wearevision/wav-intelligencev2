@@ -11,17 +11,18 @@ Estado: `F0` en curso.
 
 Levantar el piso sobre el que se apoya todo lo demás.
 
-- Proyecto Supabase nuevo + primera migración: `tenants`, `profiles`, `sessions`
-- RLS con `tenant_id` y roles separados en dos ejes (ver D3, D4)
+- Proyecto Supabase nuevo + primera migración: `profiles`, `sessions`, `participants`
+- Auth + RLS por rol: `admin` / `client` / `moderator` (D4), con el rol espejado al JWT
 - Validación de entorno con Zod (D10)
 - Shell de la app: layout, navegación por rol, design system base
-- CI: typecheck + tests + build
+- CI: typecheck + lint + tests + build
 
-**Entregable:** Federico entra con su cuenta, ve el shell de la app y una lista de
-sesiones vacía. Un usuario de otro tenant no ve nada de este.
+**Entregable:** Federico entra con su cuenta y ve el shell con una lista de sesiones
+vacía. Un `moderator` solo ve las sesiones que tiene asignadas; un `client` no ve las
+que aún no están listas.
 
-**Cierre:** el aislamiento entre tenants está probado con un test de integración, no
-solo revisado a ojo.
+**Cierre:** las tres reglas de acceso están probadas con tests de integración contra
+RLS real — no revisadas a ojo, y no mockeadas.
 
 ---
 

@@ -52,39 +52,56 @@ Proyecto Supabase nuevo, bucket R2 nuevo.
 roadmap trata "re-ingestar un FG real de punta a punta" como criterio de cierre de
 la Fase 2, no como algo que se posterga al final.
 
-## D3 — Multi-tenancy por fila, desde la primera migración · `Propuesta`
+## D3 — Un solo cliente: sin multi-tenancy · `Aceptada`
 
-`tenant_id` en **toda** tabla de dominio, con RLS que lo filtra. No `TENANT_ID` por
-deployment.
+WAV Intelligence es un producto para MG Motor. **No hay `tenant_id`, no hay tabla
+`tenants`, no hay RLS por tenant.** El branding y la configuración viven como
+constantes en el código, no en base de datos.
 
-| Opción | Costo hoy | Costo después |
+Se evaluó la alternativa (`tenant_id` + RLS desde la primera migración) y se descartó
+por decisión de producto: no está en el plan vender esto a otras marcas.
+
+**Lo que se entrega a cambio**, para que quede escrito:
+
+- No se puede comparar entre cuentas de clientes (ej. "MG contra el promedio de la
+  categoría"). Deja de ser un producto posible sin rehacer el schema.
+- Un segundo cliente exige un deployment y un Supabase enteros aparte, o pagar la
+  migración descrita abajo.
+
+**Costo de revertir, si algún día entra un cliente #2 en el mismo deployment:**
+agregar y rellenar `tenant_id` en toda tabla de dominio, reescribir cada policy de RLS
+y cada query, y auditar cada endpoint. El riesgo no es que rompa — es que una query
+que se pase filtre datos de otro cliente en silencio. Estimado: días, no horas, y con
+exposición real de datos si se hace apurado.
+
+**Puerta de salida más barata:** si aparece un segundo cliente, levantar un deployment
+propio (silo por cliente) antes que retrofitear tenancy. Mantiene el schema simple y
+el aislamiento pasa a ser de infraestructura.
+
+## D4 — Una sola lista de roles, en tabla `profiles` · `Aceptada`
+
+Consecuencia directa de D3: sin tenants no existe la membresía por tenant, así que el
+modelo de dos ejes se cae y queda una lista plana.
+
+| Rol | Quién | Puede |
 |---|---|---|
-| Un tenant por deployment (lo actual) | ~0 | Muy alto — reescribir cada query y cada policy |
-| `tenant_id` + RLS desde el día 1 | bajo | ~0 |
+| `admin` | Staff de WAV | Todo: sesiones, pipeline, usuarios, configuración |
+| `client` | MG Motor | Ver resultados de sesiones listas |
+| `moderator` | Moderadores | Solo sus sesiones asignadas |
 
-**Recomendación:** la segunda. Retrofitear tenancy es la migración más dolorosa que
-existe; hacerla al crear el schema es casi gratis. MG Motor es el cliente #1, no el
-cliente #único. El branding por tenant (colores, logo) sigue viviendo en una tabla
-`tenants`, no en variables de entorno.
+Es el modelo actual quitándole una sola cosa: el nombre del cliente incrustado en el
+identificador (`mg_client` → `client`). No cuesta nada evitarlo hoy y ahorra un rename
+incómodo si alguna vez cambia la marca.
 
-## D4 — Auth: tabla `profiles` como fuente de verdad, espejada al JWT · `Propuesta`
+**Dónde vive el rol** (esto sí cambia respecto del repo actual): tabla `profiles` 1:1
+con `auth.users` como fuente de verdad, espejada al JWT por un *custom access token
+hook* de Supabase.
 
-- `profiles` (1:1 con `auth.users`) guarda identidad y rol → consultable, joinable, auditable.
-- Un **custom access token hook** de Supabase copia rol y tenant al JWT → las policies
-  de RLS leen un claim en vez de hacer subquery por fila.
-
-Lo actual guarda el rol solo en `app_metadata`: rápido para RLS, pero imposible de
-listar o joinear en SQL y requiere service-client para cada cambio.
-
-**Separar dos ejes que hoy están confundidos:**
-
-| Eje | Valores | Significado |
-|---|---|---|
-| Rol de plataforma | `platform_admin`, `none` | ¿Es staff de WAV? Cruza tenants. |
-| Rol en el tenant | `owner`, `analyst`, `moderator`, `viewer` | Qué puede hacer dentro de un cliente. |
-
-`wav_admin` / `mg_client` mezclaban "empleado de WAV" con "usuario del cliente" en una
-sola dimensión, y por eso cada permiso nuevo requería un `if` especial.
+- La tabla lo hace consultable, joinable y auditable — lo actual guarda el rol solo en
+  `app_metadata`, y por eso listar usuarios en `/settings/users` obliga a usar el
+  service-client, que bypassea RLS.
+- El claim en el JWT mantiene las policies baratas: leen un claim en vez de hacer
+  subquery por fila.
 
 ## D5 — El pipeline es datos, no una función de 10 pasos · `Propuesta`
 
