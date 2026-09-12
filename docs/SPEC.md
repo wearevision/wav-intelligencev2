@@ -88,6 +88,62 @@ Las dos apps van a **convivir**: la nueva coordina el proceso, la vieja sigue
 procesando y analizando. La paridad llega por fases (F4 en adelante), no de una vez.
 Es decisión, no accidente.
 
+## Camino del usuario
+
+Recorrido completo sobre un estudio real: 3 días × 2 bloques = 6 sesiones.
+
+| # | Etapa | Qué hace Federico |
+|---|---|---|
+| 0 | — | Crea el estudio: nombre, cliente, **fecha de terreno**. La plantilla se copia y las diez etapas nacen con fechas calculadas desde ese ancla |
+| 1 | Brief | Adjunta el brief del cliente. Sin ese archivo la etapa no cierra |
+| 2 | Diseño | Adjunta la guía del focus. Define 3 días × 2 bloques → la app crea las 6 sesiones `d1b1`…`d3b2` |
+| 3 | Convocatoria | Carga el listado de invitados, los reparte en los bloques y les asigna micrófono |
+| 4 | Logística | Sala, equipo, moderador por bloque |
+| 5 | Ejecución | Marca cada bloque como realizado y sube audio y video 360 |
+| 6 | Procesamiento | Transcripción por bloque, atribuida por micrófono |
+| 7 | Análisis | Hallazgos y citas |
+| 8 | Revisión | QA antes de mostrar nada |
+| 9 | Entrega | Reporte al cliente |
+| 10 | Cierre | Archivar |
+
+**En el v1 existen solo el paso 0 y el esqueleto**: crear el estudio, ver su etapa
+actual, adjuntar lo requerido y avanzarlo. Del 3 al 9 se sigue usando el sistema
+actual mientras tanto.
+
+## Materiales de entrada
+
+Lo que Federico ya produce hoy por estudio:
+
+| Material | Uso en la app |
+|---|---|
+| Guía del focus | Adjunto requerido de la etapa de diseño |
+| Listado de invitados con micrófono asignado | Base de la convocatoria y de la atribución de hablante |
+| Grabación de audio por día y bloque | Entrada del procesamiento |
+| Grabación de video 360 por bloque | Entrada del procesamiento |
+
+### Nomenclatura: la genera la app, no la persona
+
+Los archivos siguen el patrón `d{día}b{bloque}` — `b1` es AM, `b2` es PM, así que
+`d2b2` es la tarde del día dos. Hoy esa convención la sostiene Federico a mano.
+
+Como la app conoce la estructura del estudio, **genera ella los nombres esperados** y
+empareja los archivos subidos contra esa lista. La convención deja de ser disciplina
+personal y pasa a ser una verificación: la etapa de ejecución es una grilla de bloques
+que se completa, no una carpeta donde hay que no equivocarse.
+
+### El audio varía entre estudios
+
+A veces hay una sola mezcla de sala por bloque; a veces una pista por micrófono; a
+veces ambas. La app **no puede asumir una forma fija**: acepta las dos y muestra qué
+tiene cada bloque. La atribución de hablante es directa cuando hay pistas por
+micrófono, y requiere separación sobre la mezcla cuando no las hay.
+
+### Material real y repo público
+
+El repo es público. El material real de cliente vive en `/private`, que está en
+`.gitignore` y no se commitea nunca. Lo que necesite existir en el repo como fixture
+de tests se escribe sintético en `tests/fixtures/`, nunca copiando de `/private`.
+
 ---
 
 ## Fuera de alcance del v1

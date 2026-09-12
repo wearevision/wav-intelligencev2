@@ -45,3 +45,6 @@ next-env.d.ts
 /test-results
 /playwright-report
 /.trigger
+
+# Material real de cliente: NUNCA se commitea (el repo es publico)
+/private
