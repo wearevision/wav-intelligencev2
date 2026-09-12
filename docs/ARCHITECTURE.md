@@ -5,6 +5,9 @@ investigación, desde el brief del cliente hasta la entrega. El repo
 `wearevision/wav-intelligence` queda como referencia de lectura; nada de su código
 se hereda.
 
+Los requisitos confirmados viven en [SPEC.md](SPEC.md); este archivo explica **cómo**
+se resuelven y **por qué** así.
+
 **Estado:** las decisiones marcadas `Aceptada` están confirmadas. Las `Propuesta`
 esperan revisión antes de construir encima.
 
@@ -26,7 +29,8 @@ El sistema es una **torre de control**, no una fábrica.
       │                    UN ESTUDIO                           │
       │                                                         │
       │  brief → diseño → convocatoria → logística → ejecución  │
-      │       → procesamiento → análisis → entrega → cierre     │
+      │       → procesamiento → análisis → revisión →           │
+      │       → entrega → cierre                                │
       │         ▲                                               │
       │         └── cada etapa: tareas, responsable, fecha,     │
       │             y una compuerta que decide si puede cerrar  │
@@ -42,7 +46,10 @@ Dos ideas gobiernan el diseño:
 2. **El proceso es dato, no código.** Las etapas y sus tareas se instancian desde
    una plantilla editable. Cambiar el proceso es editar una plantilla, no desplegar.
 
-El análisis con IA es la etapa 7 de nueve. Es una parte del camino, no el destino.
+El análisis con IA es la etapa 7 de diez. Es una parte del camino, no el destino.
+
+Los plazos cuelgan de un solo clavo: la **fecha de terreno**. Todo lo demás se calcula
+como desfase respecto a ella.
 
 ---
 
@@ -76,6 +83,11 @@ propio antes que retrofitear tenancy.
 El rol vive en `profiles` (consultable, joinable) y se espeja al JWT por un custom
 access token hook, para que las policies lean un claim en vez de consultar por fila.
 
+**Maquinaria dormida en el v1.** Se construyó antes de saber que el usuario sería uno
+solo. Los caminos de `client` y `moderator` funcionan y están probados, pero hoy no
+los recorre nadie. No se desarman —quitarlos es churn sin beneficio— pero se cuentan
+como capacidad sin uso, no como valor entregado.
+
 ## D5 — El estudio es la unidad de avance · `Propuesta`
 
 `studies` es la entidad central. Un estudio agrupa N sesiones repartidas en varios
@@ -107,8 +119,11 @@ Corregirla es editar una fila.
 
 ## D7 — Compuertas: una etapa no cierra con pendientes bloqueantes · `Propuesta`
 
-Una tarea marcada `is_blocking` impide cerrar su etapa mientras no esté hecha. Es la
-versión simple y suficiente: la compuerta se expresa como tarea, no como un motor de
+Una etapa no cierra mientras tenga pendiente una **tarea bloqueante** o un **archivo
+requerido** sin adjuntar. Los adjuntos —el brief del cliente, la guía del moderador—
+son parte de cerrar la etapa, no decoración.
+
+La compuerta se expresa como tarea o como requisito de archivo, no como un motor de
 reglas.
 
 Condiciones de dominio más ricas — "no ejecutar con cupos sin confirmar" — llegan
@@ -122,6 +137,19 @@ Construir el motor de reglas antes de tener las reglas es inventar requisitos.
 Guardar el estado de alerta obliga a mantenerlo sincronizado con un job, y un job que
 falla produce lo peor posible en una torre de control: silencio que parece calma.
 Derivarlo no puede desincronizarse.
+
+## D14 — Los plazos cuelgan de la fecha de terreno · `Propuesta`
+
+La fecha de las sesiones es el punto fijo que se acuerda con el cliente. La plantilla
+guarda **días de desfase respecto a ese ancla**: negativos para lo que va antes
+(convocatoria, logística), positivos para lo que va después (procesamiento, entrega).
+
+Consecuencia que hay que sostener: mover la fecha de terreno **recalcula la línea de
+tiempo completa** del estudio. Es el comportamiento correcto —cuando el cliente corre
+el terreno dos semanas, todo se corre con él— pero exige que las fechas se guarden
+como desfase resuelto y no como valores sueltos que quedarían huérfanos.
+
+Las fechas ya cumplidas no se recalculan: lo que pasó, pasó.
 
 ## D9 — Módulos por dominio · `Propuesta`
 

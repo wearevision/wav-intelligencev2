@@ -6,6 +6,9 @@ después automatizar los tramos.
 
 Estado: `F0` casi cerrada · `F1` es lo siguiente.
 
+Requisitos confirmados: [SPEC.md](SPEC.md). Despliegue diferido — la app corre local
+hasta que valga la pena publicarla.
+
 ---
 
 ## F0 · Fundación
@@ -28,8 +31,9 @@ El corazón. Sin esto no hay producto.
 - `studies` como entidad central
 - Plantillas: `study_templates` → `template_stages` → `template_tasks`
 - Instanciación: crear un estudio **copia** la plantilla a `study_stages` / `study_tasks`
-- Plantilla semilla con las nueve etapas: brief · diseño · convocatoria · logística ·
-  ejecución · procesamiento · análisis · entrega · cierre
+- Plantilla semilla con las diez etapas: brief · diseño · convocatoria · logística ·
+  ejecución · procesamiento · análisis · revisión · entrega · cierre
+- Plazos como desfase en días respecto a la fecha de terreno (D14)
 - Vista de un estudio: en qué etapa va, qué falta para cerrarla, qué viene después
 
 **Entregable:** crear un estudio desde la plantilla, verlo en su etapa actual, y
@@ -59,8 +63,9 @@ tengas que buscarlo.
 
 - Tareas por etapa con responsable y fecha de vencimiento
 - Marcar hecho, reasignar, reprogramar
-- Compuertas: una etapa no cierra con tareas bloqueantes pendientes (D7)
-- Historial: quién cerró qué y cuándo
+- Compuertas: una etapa no cierra con tareas bloqueantes ni archivos requeridos
+  pendientes (D7)
+- Adjuntos por etapa: brief del cliente, guía del moderador
 
 **Entregable:** intentar cerrar una etapa con un pendiente bloqueante y que la app
 lo impida diciendo exactamente qué falta.
@@ -121,7 +126,7 @@ Acá recién entra el pipeline de medios, como etapa del proceso (D13).
 
 - Reporte y presentación
 - Clips de video de las citas
-- Vista de cliente: MG entra a ver el avance y los resultados
+- Vista de cliente (fuera del v1: hoy el único usuario es Federico)
 
 **Entregable:** entregar un estudio real desde la app.
 
