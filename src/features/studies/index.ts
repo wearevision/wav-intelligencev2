@@ -1,0 +1,10 @@
+// API pública del feature. Nadie importa el interior de studies/ salvo por acá (D9).
+export type { Study, StudyStage, StudyStatus, StudySummary, StudyTask, StudyStageFile } from './types'
+export { blockersFor, canClose, currentStage, daysUntil, isClosed, isOverdue, overdueStages, progress } from './model'
+export type { Blocker } from './model'
+export { studiesCopy, dueLabel } from './copy'
+export { listStudies, getStudy } from './queries'
+export { advanceStage, setTaskDone, createStudy } from './actions'
+export { NewStudyForm } from './components/new-study-form'
+export { AdvanceButton } from './components/advance-button'
+export { TaskToggle } from './components/task-toggle'

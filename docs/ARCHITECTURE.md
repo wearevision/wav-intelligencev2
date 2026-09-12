@@ -165,9 +165,11 @@ src/
     media/        captura y procesamiento
     insights/     análisis
     deliverables/ entregables
-  server/         supabase · auth · storage · env
+  server/         lo que NUNCA se empaqueta al cliente: cliente Supabase de
+                  servidor, auth, storage
+  lib/            compartido entre servidor y navegador: cliente Supabase de
+                  navegador, tipos del schema, utilidades
   ui/             primitivas de diseño
-  lib/            utilidades genéricas
 ```
 
 **Regla dura:** un feature nunca importa el interior de otro, solo su `index.ts`.

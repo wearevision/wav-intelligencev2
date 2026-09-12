@@ -4,7 +4,7 @@ Cada fase cierra con algo **demostrable en pantalla**, no con "el módulo X est�
 El orden sigue el valor para quien coordina: primero saber en qué estado está todo,
 después automatizar los tramos.
 
-Estado: `F0` casi cerrada · `F1` es lo siguiente.
+Estado: `F0` cerrada · `F1` cerrada · `F2 · Torre de control` es lo siguiente.
 
 Requisitos confirmados: [SPEC.md](SPEC.md). Despliegue diferido — la app corre local
 hasta que valga la pena publicarla.
@@ -16,9 +16,9 @@ hasta que valga la pena publicarla.
 - [x] Repo, tooling, CI (typecheck · lint · tests · build)
 - [x] Proyecto Supabase + migración inicial: `profiles`, `sessions`, `participants`
 - [x] RLS por rol, verificada contra la base real con siete casos
-- [ ] Validación de entorno con Zod
-- [ ] Clientes de Supabase (servidor y navegador)
-- [ ] Shell de la app con login y navegación por rol
+- [x] Validación de entorno con Zod
+- [x] Clientes de Supabase (servidor y navegador) y guard de sesión en `proxy.ts`
+- [x] Shell de la app con login
 
 **Entregable:** Federico entra con su cuenta y ve el shell de la app.
 
@@ -35,8 +35,9 @@ El corazón. Sin esto no hay producto.
 - [x] Plazos como desfase respecto a la fecha de terreno, con recálculo al moverla (D14)
 - [x] Compuertas en la base: tarea bloqueante o archivo requerido impiden cerrar (D7)
 - [x] Código de sesión `d{día}b{bloque}` generado por la base
-- [ ] Tipos TypeScript del schema
-- [ ] Vista de un estudio: en qué etapa va, qué falta para cerrarla, qué viene después
+- [x] Tipos TypeScript del schema
+- [x] Lista de estudios y creación desde la plantilla
+- [x] Vista de un estudio: etapa actual, qué falta para cerrarla, y cerrar para avanzar
 
 **Entregable:** crear un estudio desde la plantilla, verlo en su etapa actual, y
 avanzarlo a la siguiente.
