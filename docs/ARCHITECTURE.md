@@ -1,207 +1,183 @@
 # Arquitectura — WAV Intelligence v2
 
-Reconstrucción limpia de WAV Intelligence. El repo `wav-intelligence` queda intacto
-como referencia de lectura; nada de su código se hereda.
+Herramienta para **administrar y guiar** el ciclo completo de un estudio de
+investigación, desde el brief del cliente hasta la entrega. El repo
+`wearevision/wav-intelligence` queda como referencia de lectura; nada de su código
+se hereda.
 
-**Estado de este documento:** las decisiones marcadas `Aceptada` ya están confirmadas.
-Las marcadas `Propuesta` esperan revisión de Federico antes de construir features encima.
+**Estado:** las decisiones marcadas `Aceptada` están confirmadas. Las `Propuesta`
+esperan revisión antes de construir encima.
 
 ---
 
 ## Mapa mental
 
-Piensa el sistema como una **planta de tres pisos** con un ascensor de carga al costado:
+El sistema es una **torre de control**, no una fábrica.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  PISO 3 — Consumo      dashboard · player · research · chat  │
-│                        entregables (PDF/PPTX/clips)          │
-├──────────────────────────────────────────────────────────────┤
-│  PISO 2 — Conocimiento verbatims · topics · sentimiento      │
-│                        insights · barreras · planes          │
-├──────────────────────────────────────────────────────────────┤
-│  PISO 1 — Materia      sesiones · participantes · media      │
-│                        artifacts (HLS, transcripciones)      │
-└──────────────────────────────────────────────────────────────┘
-        ▲
-        │  ASCENSOR: el pipeline. Sube materia y la convierte
-        │  en conocimiento, un piso por vez, y puede parar
-        │  en cualquier piso sin rehacer los de abajo.
+                    ┌─────────────────────────────┐
+                    │      TORRE DE CONTROL       │
+                    │  todos los estudios a la    │
+                    │  vez · qué está atrasado    │
+                    │  · qué está trabado         │
+                    └──────────────┬──────────────┘
+                                   │ mira hacia abajo
+      ┌────────────────────────────┴────────────────────────────┐
+      │                    UN ESTUDIO                           │
+      │                                                         │
+      │  brief → diseño → convocatoria → logística → ejecución  │
+      │       → procesamiento → análisis → entrega → cierre     │
+      │         ▲                                               │
+      │         └── cada etapa: tareas, responsable, fecha,     │
+      │             y una compuerta que decide si puede cerrar  │
+      │                                                         │
+      │  dentro de "ejecución" viven las sesiones concretas     │
+      └─────────────────────────────────────────────────────────┘
 ```
 
-La regla que gobierna todo: **cada piso solo conoce al de abajo**. El player no sabe
-cómo se transcribió; el pipeline no sabe que existe un dashboard.
+Dos ideas gobiernan el diseño:
+
+1. **La unidad que avanza es el estudio.** Las sesiones son piezas dentro de él,
+   no entidades de primer nivel con vida propia.
+2. **El proceso es dato, no código.** Las etapas y sus tareas se instancian desde
+   una plantilla editable. Cambiar el proceso es editar una plantilla, no desplegar.
+
+El análisis con IA es la etapa 7 de nueve. Es una parte del camino, no el destino.
 
 ---
 
-## D1 — Repo y alcance · `Aceptada`
+## D1 — Repo nuevo · `Aceptada`
 
-Repo nuevo `wav-intelligence-v2`, paralelo al actual. Mismo alcance de producto
-end-to-end (ingesta → transcripción → análisis → entregables), arquitectura re-decidida.
-Cero código heredado.
-
-**Por qué:** ocho sprints de deuda incremental (≈90 migraciones, features bolted-on)
-cuestan más de desenredar que de rehacer, y el producto ya está validado — sabemos
-qué construir, que es la parte difícil de un rewrite.
+Repo `wav-intelligence-v2`, paralelo al actual. Cero código heredado.
 
 ## D2 — Infraestructura nueva · `Aceptada`
 
-Proyecto Supabase nuevo, bucket R2 nuevo.
-
-**Consecuencia a asumir:** no hay datos reales hasta re-ingestar una sesión. El
-roadmap trata "re-ingestar un FG real de punta a punta" como criterio de cierre de
-la Fase 2, no como algo que se posterga al final.
+Supabase `lrnaiwilairvvnqlyxdq` (us-east-1) y bucket R2 propio. Sin datos heredados.
 
 ## D3 — Un solo cliente: sin multi-tenancy · `Aceptada`
 
-WAV Intelligence es un producto para MG Motor. **No hay `tenant_id`, no hay tabla
-`tenants`, no hay RLS por tenant.** El branding y la configuración viven como
-constantes en el código, no en base de datos.
+No hay `tenant_id` ni tabla `tenants`. Producto para un cliente.
 
-Se evaluó la alternativa (`tenant_id` + RLS desde la primera migración) y se descartó
-por decisión de producto: no está en el plan vender esto a otras marcas.
+**Costo de revertir:** agregar y rellenar `tenant_id` en toda tabla, reescribir cada
+policy y cada query, auditar cada endpoint. El riesgo no es que rompa — es que una
+query que se pase filtre datos de otro cliente en silencio.
 
-**Lo que se entrega a cambio**, para que quede escrito:
+**Puerta de salida más barata:** si aparece un cliente #2, levantar un deployment
+propio antes que retrofitear tenancy.
 
-- No se puede comparar entre cuentas de clientes (ej. "MG contra el promedio de la
-  categoría"). Deja de ser un producto posible sin rehacer el schema.
-- Un segundo cliente exige un deployment y un Supabase enteros aparte, o pagar la
-  migración descrita abajo.
-
-**Costo de revertir, si algún día entra un cliente #2 en el mismo deployment:**
-agregar y rellenar `tenant_id` en toda tabla de dominio, reescribir cada policy de RLS
-y cada query, y auditar cada endpoint. El riesgo no es que rompa — es que una query
-que se pase filtre datos de otro cliente en silencio. Estimado: días, no horas, y con
-exposición real de datos si se hace apurado.
-
-**Puerta de salida más barata:** si aparece un segundo cliente, levantar un deployment
-propio (silo por cliente) antes que retrofitear tenancy. Mantiene el schema simple y
-el aislamiento pasa a ser de infraestructura.
-
-## D4 — Una sola lista de roles, en tabla `profiles` · `Aceptada`
-
-Consecuencia directa de D3: sin tenants no existe la membresía por tenant, así que el
-modelo de dos ejes se cae y queda una lista plana.
+## D4 — Una sola lista de roles · `Aceptada`
 
 | Rol | Quién | Puede |
 |---|---|---|
-| `admin` | Staff de WAV | Todo: sesiones, pipeline, usuarios, configuración |
-| `client` | MG Motor | Ver resultados de sesiones listas |
+| `admin` | Federico y equipo WAV | Todo: estudios, etapas, plantillas, usuarios |
+| `client` | MG Motor | Ver avance y resultados de estudios entregables |
 | `moderator` | Moderadores | Solo sus sesiones asignadas |
 
-Es el modelo actual quitándole una sola cosa: el nombre del cliente incrustado en el
-identificador (`mg_client` → `client`). No cuesta nada evitarlo hoy y ahorra un rename
-incómodo si alguna vez cambia la marca.
+El rol vive en `profiles` (consultable, joinable) y se espeja al JWT por un custom
+access token hook, para que las policies lean un claim en vez de consultar por fila.
 
-**Dónde vive el rol** (esto sí cambia respecto del repo actual): tabla `profiles` 1:1
-con `auth.users` como fuente de verdad, espejada al JWT por un *custom access token
-hook* de Supabase.
+## D5 — El estudio es la unidad de avance · `Propuesta`
 
-- La tabla lo hace consultable, joinable y auditable — lo actual guarda el rol solo en
-  `app_metadata`, y por eso listar usuarios en `/settings/users` obliga a usar el
-  service-client, que bypassea RLS.
-- El claim en el JWT mantiene las policies baratas: leen un claim en vez de hacer
-  subquery por fila.
+`studies` es la entidad central. Un estudio agrupa N sesiones repartidas en varios
+días y **es lo que avanza por las etapas**. Una sesión no tiene etapas propias: vive
+dentro de la etapa de ejecución de su estudio.
 
-## D5 — El pipeline es datos, no una función de 10 pasos · `Propuesta`
+Se descartó darle su propio ciclo a cada sesión: duplicaría el seguimiento y haría
+imposible la pregunta que importa — *¿cómo va el estudio de MG?* — sin sumar a mano.
 
-Tablas `pipeline_runs` y `pipeline_steps`. Cada paso: nombre, estado, clave de
-idempotencia, artifacts que consume y produce.
+## D6 — El proceso vive en plantillas · `Propuesta`
 
-Lo actual tiene un `processSession` que orquesta 10 pasos inline. Funciona, pero
-re-correr un solo paso, saltar uno, o resumir después de una falla exige tocar el
-orquestador. Con los pasos como filas, todo eso es una query.
+```
+study_templates          la plantilla ("Focus group estándar")
+  └── template_stages    etapas ordenadas, con holgura en días
+        └── template_tasks   tareas típicas, con rol responsable
 
-**Recomendación:** adoptarlo. Es el cambio con mejor relación esfuerzo/beneficio del
-rebuild completo.
+studies                  el estudio real, creado desde una plantilla
+  └── study_stages       copia instanciada, con fechas y estado reales
+        └── study_tasks  copia instanciada, con responsable y vencimiento
+```
 
-## D6 — Local-first como artifacts de primera clase · `Propuesta`
+Crear un estudio **copia** la plantilla en lugar de referenciarla. Un estudio en
+curso no debe cambiar de forma porque alguien editó la plantilla a mitad de camino;
+y el estudio del año pasado tiene que seguir mostrando el proceso que realmente
+tuvo, no el actual.
 
-Tabla `artifacts`: `(kind, storage_key, producer: 'local'|'cloud', checksum, bytes)`.
+Consecuencia práctica: la lista de nueve etapas es **dato semilla**, no schema.
+Corregirla es editar una fila.
 
-Un paso del pipeline **se salta si y solo si** su artifact de salida ya existe y valida.
+## D7 — Compuertas: una etapa no cierra con pendientes bloqueantes · `Propuesta`
 
-Hoy esto vive como null-checks dispersos (`hls_manifest_key` seteado → saltar
-transcode; `transcription_artifact_key` seteado → saltar transcribe). Cada nuevo paso
-local requiere una columna nueva y un `if` nuevo en el orquestador. Con artifacts,
-WAV Ingest simplemente **publica un artifact** y el pipeline se ajusta solo.
+Una tarea marcada `is_blocking` impide cerrar su etapa mientras no esté hecha. Es la
+versión simple y suficiente: la compuerta se expresa como tarea, no como un motor de
+reglas.
 
-La analogía: hoy el pipeline pregunta "¿alguien ya hizo esto?" mirando por la ventana
-de cada paso. Con artifacts hay un casillero común — si el paquete está en el
-casillero, no lo vuelves a pedir.
+Condiciones de dominio más ricas — "no ejecutar con cupos sin confirmar" — llegan
+después como *checks* con nombre, cuando exista la convocatoria que las alimente.
+Construir el motor de reglas antes de tener las reglas es inventar requisitos.
 
-## D7 — Runner: Trigger.dev v4 · `Propuesta`
+## D8 — Las alertas se derivan, no se guardan · `Propuesta`
 
-Se mantiene. Maneja jobs largos (ffmpeg, Whisper), reintentos, concurrencia y
-extensión Python para pyannote. No hay razón para re-litigar lo que funciona.
+"Atrasado" y "trabado" son consultas sobre fechas y estados, no columnas ni tablas.
 
-Descartadas: Edge Functions (timeout corto, ffmpeg imposible), worker propio
-(mantener infra sin beneficio a esta escala).
+Guardar el estado de alerta obliga a mantenerlo sincronizado con un job, y un job que
+falla produce lo peor posible en una torre de control: silencio que parece calma.
+Derivarlo no puede desincronizarse.
 
-## D8 — Módulos por dominio, no por tecnología · `Propuesta`
+## D9 — Módulos por dominio · `Propuesta`
 
 ```
 src/
-  app/                 # routing y nada más — páginas delgadas
+  app/            routing y nada más
   features/
-    sessions/          # schema · queries · lógica · componentes
-    media/
-    transcripts/
-    insights/
-    deliverables/
-    recruiting/        # ex "convocatoria"
-    research/
-  server/              # clientes supabase · auth · storage · rate-limit · env
-  ui/                  # primitivas de diseño (shadcn)
-  lib/                 # utilidades genuinamente genéricas
+    studies/      el estudio y su avance por etapas
+    workflow/     plantillas, etapas, tareas, compuertas
+    control/      la torre: vistas agregadas y alertas
+    recruiting/   convocatoria
+    sessions/     sesiones, logística, participantes
+    media/        captura y procesamiento
+    insights/     análisis
+    deliverables/ entregables
+  server/         supabase · auth · storage · env
+  ui/             primitivas de diseño
+  lib/            utilidades genéricas
 ```
 
 **Regla dura:** un feature nunca importa el interior de otro, solo su `index.ts`.
-
-Lo actual agrupa por tecnología (`lib/ai`, `lib/r2`, `lib/mappers`, `lib/schemas`), así
-que una feature queda repartida en seis carpetas y nadie puede borrarla con confianza.
-Esta regla es lo único que evita que el repo nuevo sea el repo viejo en ocho sprints.
-
-## D9 — Acceso a datos: queries por feature que devuelven tipos de dominio · `Propuesta`
-
-`features/<x>/queries.ts` tipado desde los tipos generados de Supabase, devolviendo
-tipos camelCase de dominio. La conversión snake→camel vive en un lugar por feature,
-en vez de una carpeta global `mappers/`.
+Es lo único que evita repetir la deuda del repo anterior, donde una feature quedaba
+repartida en seis carpetas técnicas y nadie podía borrarla con confianza.
 
 ## D10 — Validación en todo borde, incluido el entorno · `Propuesta`
 
-Zod en: input de API, artifacts JSON, y **variables de entorno al arrancar**
-(`src/server/env.ts`). Lo actual descubre un env faltante en el primer request que lo
-toca; queremos que falle al levantar, con el nombre de la variable.
+Zod en input de API, en artifacts JSON, y en variables de entorno **al arrancar**.
+Que falle al levantar nombrando la variable, no en el primer request que la toca.
 
 ## D11 — Estrategia de tests · `Propuesta`
 
-- Unit + componentes con Vitest (ya configurado, corriendo).
-- Integración contra una **branch real de Supabase**, no mocks, donde se pueda.
-- E2E con Playwright, **fuera de CI** al principio.
-- **Sin umbral de coverage al inicio**, y luego uno que sube por escalones.
+Unit y componentes con Vitest. Integración contra Supabase real donde se pueda —
+las reglas de acceso se prueban contra RLS, no contra mocks. E2E con Playwright,
+fuera de CI al principio.
 
-El umbral de coverage del repo actual bloqueó un deploy una hora por 1–2 puntos
-porque trece features integration-heavy entraron juntas. Un gate que se apaga bajo
-presión no es un gate; se introduce cuando la base está estable y sube de a poco.
+**Sin umbral de coverage al inicio**, y luego uno que sube por escalones. El umbral
+del repo anterior bloqueó un deploy una hora por dos puntos; un gate que se apaga
+bajo presión no es un gate.
 
-## D12 — Copy en diccionario, no en los componentes · `Propuesta`
+## D12 — Copy en diccionario · `Propuesta`
 
-`es-CL` es el único locale de v1, pero **ningún string literal dentro de un
-componente**. Un diccionario por feature, resuelto en el servidor.
+`es-CL` es el único locale, pero ningún string literal dentro de un componente.
+Al repo anterior se le filtraron claves crudas a la pantalla más de una vez.
 
-Lo actual mezcla español hardcodeado con un convención de prop `label(key)`, y se le
-filtraron claves crudas a la UI (`sessions.title`) más de una vez. Con el copy fuera
-del componente, agregar inglés es traducir un archivo, no auditar la app.
+## D13 — El pipeline de medios es una etapa, no el centro · `Propuesta`
 
-## D13 — Prompts versionados con harness de evaluación · `Propuesta`
+Transcripción, diarización y análisis entran como la etapa de procesamiento, en una
+fase tardía del roadmap. Cuando llegue el momento, dos ideas del diseño anterior se
+mantienen porque siguen siendo buenas:
 
-Los prompts (classify, insights, action plans) viven en archivos versionados, con un
-set de casos de referencia y un comando que mide regresión.
+- **Pasos como datos**, para poder re-correr uno solo sin tocar un orquestador.
+- **Artifacts de primera clase**: un paso se salta si y solo si su salida ya existe
+  y valida. Convierte el procesamiento local de WAV Ingest en un concepto del modelo
+  en vez de una constelación de null-checks.
 
-Es el activo con más horas de tuning del producto y hoy no tiene red: cambiar un
-prompt es apostar. El harness se construye en la misma fase que el primer prompt, no
-después.
+Runner: Trigger.dev, por jobs largos, reintentos y extensión Python para pyannote.
 
 ---
 
@@ -209,6 +185,6 @@ después.
 
 | Tema | Por qué aún no |
 |---|---|
-| Proveedor de transcripción por defecto | Depende de medir Whisper vs alternativas con audio real de FG (Fase 2) |
-| Umbral de similitud para diarización | Se calibra con embeddings reales (Fase 3) |
-| Hosting | Vercel es el default salvo que el pipeline pida otra cosa |
+| Notificaciones fuera de la app (correo, WhatsApp) | Primero ver si la torre de control alcanza sola |
+| Proveedor de transcripción | Se mide con audio real cuando llegue la etapa |
+| Hosting | Vercel por defecto salvo que el pipeline pida otra cosa |

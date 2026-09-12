@@ -1,151 +1,148 @@
 # Roadmap — WAV Intelligence v2
 
 Cada fase cierra con algo **demostrable en pantalla**, no con "el módulo X está listo".
-El orden es de dependencia: ninguna fase empieza sin que la anterior corra de verdad.
+El orden sigue el valor para quien coordina: primero saber en qué estado está todo,
+después automatizar los tramos.
 
-Estado: `F0` en curso.
+Estado: `F0` casi cerrada · `F1` es lo siguiente.
 
 ---
 
 ## F0 · Fundación
 
-Levantar el piso sobre el que se apoya todo lo demás.
+- [x] Repo, tooling, CI (typecheck · lint · tests · build)
+- [x] Proyecto Supabase + migración inicial: `profiles`, `sessions`, `participants`
+- [x] RLS por rol, verificada contra la base real con siete casos
+- [ ] Validación de entorno con Zod
+- [ ] Clientes de Supabase (servidor y navegador)
+- [ ] Shell de la app con login y navegación por rol
 
-- Proyecto Supabase nuevo + primera migración: `profiles`, `sessions`, `participants`
-- Auth + RLS por rol: `admin` / `client` / `moderator` (D4), con el rol espejado al JWT
-- Validación de entorno con Zod (D10)
-- Shell de la app: layout, navegación por rol, design system base
-- CI: typecheck + lint + tests + build
-
-**Entregable:** Federico entra con su cuenta y ve el shell con una lista de sesiones
-vacía. Un `moderator` solo ve las sesiones que tiene asignadas; un `client` no ve las
-que aún no están listas.
-
-**Cierre:** las tres reglas de acceso están probadas con tests de integración contra
-RLS real — no revisadas a ojo, y no mockeadas.
+**Entregable:** Federico entra con su cuenta y ve el shell de la app.
 
 ---
 
-## F1 · Ingesta
+## F1 · El estudio y su proceso
 
-Meter materia prima al sistema.
+El corazón. Sin esto no hay producto.
 
-- CRUD de sesiones y participantes
-- Subida de media a R2 (presign + multipart) tras un puerto de storage único (D8)
-- Modelo de `media_files` + `artifacts` (D6)
-- Tipos de media: 360°, DSLR, CCTV, audio de sala, ambiente, micrófonos individuales
+- `studies` como entidad central
+- Plantillas: `study_templates` → `template_stages` → `template_tasks`
+- Instanciación: crear un estudio **copia** la plantilla a `study_stages` / `study_tasks`
+- Plantilla semilla con las nueve etapas: brief · diseño · convocatoria · logística ·
+  ejecución · procesamiento · análisis · entrega · cierre
+- Vista de un estudio: en qué etapa va, qué falta para cerrarla, qué viene después
 
-**Entregable:** crear una sesión, subir un video de 2 GB, verlo listado con su tamaño
-y duración correctos.
+**Entregable:** crear un estudio desde la plantilla, verlo en su etapa actual, y
+avanzarlo a la siguiente.
 
-**Cierre:** subir el mismo archivo dos veces no duplica nada (idempotencia por checksum).
-
----
-
-## F2 · Pipeline y transcripción
-
-El ascensor de carga empieza a funcionar.
-
-- `pipeline_runs` / `pipeline_steps` como datos (D5)
-- Transcode a HLS con ffmpeg
-- Transcripción con Whisper + glosario automotriz chileno
-- Ingesta de artifacts producidos localmente por WAV Ingest (D6)
-- Vista de progreso del pipeline por paso
-
-**Entregable:** **re-ingestar un focus group real de punta a punta** y leer su
-transcripción en la app.
-
-**Cierre:** un paso que falla se re-corre solo, sin repetir los pasos ya completados.
-Y un artifact producido local se respeta en vez de re-procesarse.
+**Cierre:** editar la plantilla no altera ningún estudio ya creado.
 
 ---
 
-## F3 · Diarización
+## F2 · Torre de control
 
-Saber quién dijo qué — el problema más difícil del producto.
+La vista por la que abres la app cada mañana.
 
-- Marcado de rangos de voz por participante (operador asistido)
-- Embeddings de voz con pyannote + enrollment por participante
-- Atribución de verbatims, con corrección manual que gana siempre
-- Re-entrenamiento tras reasignación
+- Panorama de todos los estudios y su etapa actual
+- Lo atrasado y lo trabado al frente, no escondido en un filtro
+- Alertas derivadas de fechas y estados (D8), sin job que se pueda desincronizar
+- Entrar desde ahí al estudio que necesita atención
 
-**Entregable:** los verbatims de una sesión real aparecen atribuidos por nombre, y
-corregir uno a mano se persiste.
+**Entregable:** una pantalla que responde "¿qué necesita mi atención hoy?" sin que
+tengas que buscarlo.
 
-**Cierre:** precisión medida contra una sesión anotada a mano. Objetivo 95%; el número
-real se reporta aunque no llegue.
-
----
-
-## F4 · Análisis
-
-Convertir transcripción en conocimiento.
-
-- Clasificación de topic + sentimiento por verbatim
-- Score de calidad de verbatim
-- Extracción de insights: keypoints, barreras de compra, menciones de competencia
-- Planes de acción generados
-- Harness de evaluación de prompts (D13) — se construye **en esta fase**, no después
-- Dashboard: sentimiento por tema, evolución, verbatims destacados
-
-**Entregable:** dashboard de una sesión real con sentimiento por tema y barreras
-rankeadas.
-
-**Cierre:** el harness corre y reporta un baseline. Cambiar un prompt muestra si mejoró
-o empeoró.
+**Cierre:** un estudio con una tarea vencida aparece marcado sin intervención de nadie.
 
 ---
 
-## F5 · Player
+## F3 · Checklists, responsables y compuertas
 
-- Player multi-fuente (DSLR / 360° / audio) sincronizado
-- Transcripción sincronizada, click-to-seek
-- Timeline con segmentos por tema
-- Mapa de asientos y detalle de participante
+- Tareas por etapa con responsable y fecha de vencimiento
+- Marcar hecho, reasignar, reprogramar
+- Compuertas: una etapa no cierra con tareas bloqueantes pendientes (D7)
+- Historial: quién cerró qué y cuándo
 
-**Entregable:** ver la sesión y saltar a cualquier cita desde la transcripción.
-
----
-
-## F6 · Entregables
-
-- Reporte PDF de sesión
-- PPTX por idioma
-- CSV de planes de acción
-- Bundle de clips de video con subtítulos
-
-**Entregable:** los cuatro formatos descargables desde una sesión real.
+**Entregable:** intentar cerrar una etapa con un pendiente bloqueante y que la app
+lo impida diciendo exactamente qué falta.
 
 ---
 
-## F7 · Research y chat
+## F4 · Convocatoria
 
-- Búsqueda semántica cross-session de verbatims
-- Chat IA con herramientas sobre los datos de investigación
+La etapa que más duele, y la primera que se automatiza.
 
-**Entregable:** preguntar "¿qué dijeron sobre el precio en todas las sesiones?" y
-recibir citas con link al minuto exacto.
+- Leads: importar, filtrar por segmento, buscar
+- Cupos por grupo y asignación de participantes
+- Seguimiento de toques por canal y estado
+- Plantillas de mensaje
+
+**Entregable:** convocar un estudio real desde la app y ver el llenado de cupos en vivo.
 
 ---
 
-## F8 · Convocatoria
+## F5 · Sesiones y logística
 
-- CRM de leads, importación CSV/Excel
-- Grilla de cupos por sesión, timeline de toques
-- Plantillas de mensajes por canal
+- Sesiones dentro del estudio: fecha, hora, sala, moderador
+- Participantes confirmados por sesión
+- Guía del moderador y objetivo por sesión
 
-**Entregable:** convocar una sesión real desde la app.
+**Entregable:** la agenda completa de un estudio, lista para ejecutar.
+
+---
+
+## F6 · Captura y procesamiento
+
+Acá recién entra el pipeline de medios, como etapa del proceso (D13).
+
+- Subida de media a R2 (multi-fuente: 360°, DSLR, audio de sala, micrófonos)
+- Pasos del pipeline como datos, re-corribles de a uno
+- Artifacts de primera clase: un paso se salta si su salida ya existe y valida
+- Transcripción y atribución de hablante
+
+**Entregable:** subir la grabación de una sesión real y leer su transcripción.
+
+**Cierre:** un paso que falla se re-corre solo, sin repetir los ya completados.
+
+---
+
+## F7 · Análisis
+
+- Temas y sentimiento por cita
+- Hallazgos, barreras de compra, menciones de competencia
+- Harness de evaluación de prompts — se construye **en esta fase**, no después
+
+**Entregable:** los hallazgos de un estudio real, con sus citas de respaldo.
+
+**Cierre:** el harness reporta un baseline. Cambiar un prompt muestra si mejoró o empeoró.
+
+---
+
+## F8 · Entrega
+
+- Reporte y presentación
+- Clips de video de las citas
+- Vista de cliente: MG entra a ver el avance y los resultados
+
+**Entregable:** entregar un estudio real desde la app.
+
+---
+
+## F9 · Cierre
+
+- Incentivos pagados, facturación, archivo del estudio
+
+**Entregable:** un estudio llega a la última etapa y se archiva completo.
 
 ---
 
 ## Reglas de ejecución
 
-- **TDD donde hay lógica.** Test primero en pipeline, scoring, RLS y validación.
+- **TDD donde hay lógica.** Compuertas, alertas, instanciación de plantillas, RLS.
   No en componentes de presentación puros.
 - **Una fase, una rama, PRs chicos.** Nada de batches de 40 commits.
-- **Migraciones numeradas por una sola mano.** Si se paraleliza trabajo, el número de
-  migración se asigna antes de dispatchar.
-- **`git add <paths>` explícito.** Nunca `git add .` ni `commit -a` con trabajo
-  concurrente en el árbol.
-- **Este roadmap es la fuente de verdad del estado.** Si una fase cambia de alcance, se
-  edita acá primero.
+- **Migraciones con timestamp**, `YYYYMMDDHHMMSS_slug.sql`. Dos ramas paralelas no
+  pueden colisionar en el mismo número.
+- **Advisors de Supabase después de todo DDL**, y dejarlos limpios antes de commitear.
+- **`git add <rutas>` explícito.** Nunca `git add .` ni `git commit -a`.
+- **Este roadmap es la fuente de verdad del estado.** Si una fase cambia de alcance,
+  se edita acá primero.

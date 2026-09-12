@@ -1,8 +1,12 @@
 # WAV Intelligence v2
 
-Plataforma de investigación de focus groups: ingesta de media multi-fuente →
-transcripción con atribución de hablante → análisis de temas y sentimiento →
-entregables para el cliente.
+Herramienta para administrar y guiar el ciclo completo de un estudio de
+investigación: brief → diseño → convocatoria → logística → ejecución →
+procesamiento → análisis → entrega → cierre.
+
+La app sabe en qué etapa va cada estudio, qué falta para cerrarla y qué está
+atrasado. La transcripción y el análisis con IA son una etapa del camino, no el
+producto.
 
 Reconstrucción limpia de `wav-intelligence`.
 
@@ -23,4 +27,4 @@ npm run dev
 
 ## Estado
 
-`F0 · Fundación` — en curso. Ver [roadmap](docs/ROADMAP.md).
+`F0 · Fundación` casi cerrada · `F1 · El estudio y su proceso` es lo siguiente.

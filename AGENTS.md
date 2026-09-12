@@ -10,9 +10,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # WAV Intelligence v2
 
-Plataforma de investigación de focus groups. Reconstrucción limpia de
-`wav-intelligence` (ese repo es **solo referencia de lectura**: no se copia código de
-ahí; si algo de allá parece útil, se re-decide y se reescribe).
+Herramienta para **administrar y guiar** el ciclo completo de un estudio de
+investigación, desde el brief del cliente hasta la entrega.
+
+La unidad que avanza es el **estudio**; las sesiones viven dentro de él. El proceso
+(etapas y tareas) es **dato instanciado desde una plantilla**, no un enum en el
+código. El pipeline de medios y el análisis con IA son una etapa del camino, no el
+centro del producto.
+
+Reconstrucción limpia de `wav-intelligence` (ese repo es **solo referencia de
+lectura**: no se copia código de ahí; si algo de allá parece útil, se re-decide y se
+reescribe).
 
 **Stack:** Next.js 16 · React 19 · Supabase · Tailwind v4 · Vitest · Trigger.dev · Cloudflare R2
 
