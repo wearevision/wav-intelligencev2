@@ -5,6 +5,10 @@ import { env } from '@/env'
 
 const PUBLIC_PREFIXES = ['/login', '/auth']
 
+// /preview renderiza la interfaz con datos de prueba y no existe en producción,
+// así que en desarrollo tampoco necesita sesión.
+const DEV_PUBLIC_PREFIXES = process.env.NODE_ENV === 'production' ? [] : ['/preview']
+
 /** Refresca la sesión y bloquea las rutas privadas. Next 16 llama a esto `proxy`. */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -30,7 +34,9 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
-  const isPublic = PUBLIC_PREFIXES.some((prefix) => path.startsWith(prefix))
+  const isPublic = [...PUBLIC_PREFIXES, ...DEV_PUBLIC_PREFIXES].some((prefix) =>
+    path.startsWith(prefix),
+  )
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
