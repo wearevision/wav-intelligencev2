@@ -2,18 +2,18 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import {
-  AdvanceButton,
   blockersFor,
   currentStage,
   daysUntil,
   dueLabel,
-  getStudy,
   isOverdue,
   progress,
   studiesCopy,
-  TaskToggle,
   type StudyStage,
 } from '@/features/studies'
+import { AdvanceButton } from '@/features/studies/components/advance-button'
+import { TaskToggle } from '@/features/studies/components/task-toggle'
+import { getStudy } from '@/features/studies/server'
 
 export default async function StudyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

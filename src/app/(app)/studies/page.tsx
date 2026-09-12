@@ -1,6 +1,8 @@
 import Link from 'next/link'
 
-import { listStudies, NewStudyForm, studiesCopy } from '@/features/studies'
+import { studiesCopy } from '@/features/studies'
+import { NewStudyForm } from '@/features/studies/components/new-study-form'
+import { listStudies } from '@/features/studies/server'
 
 export default async function StudiesPage() {
   const studies = await listStudies()

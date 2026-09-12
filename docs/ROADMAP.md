@@ -4,7 +4,7 @@ Cada fase cierra con algo **demostrable en pantalla**, no con "el módulo X est�
 El orden sigue el valor para quien coordina: primero saber en qué estado está todo,
 después automatizar los tramos.
 
-Estado: `F0` cerrada · `F1` cerrada · `F2 · Torre de control` es lo siguiente.
+Estado: `F0` · `F1` · `F2` cerradas · `F3 · Checklists, responsables y compuertas` es lo siguiente.
 
 Requisitos confirmados: [SPEC.md](SPEC.md). Despliegue diferido — la app corre local
 hasta que valga la pena publicarla.
@@ -50,10 +50,10 @@ avanzarlo a la siguiente.
 
 La vista por la que abres la app cada mañana.
 
-- Panorama de todos los estudios y su etapa actual
-- Lo atrasado y lo trabado al frente, no escondido en un filtro
-- Alertas derivadas de fechas y estados (D8), sin job que se pueda desincronizar
-- Entrar desde ahí al estudio que necesita atención
+- [x] Panorama de todos los estudios activos, su etapa actual y su avance
+- [x] Lo vencido y lo que vence esta semana al frente, ordenado por urgencia
+- [x] Alertas derivadas de fechas y estados (D8), sin job que se pueda desincronizar
+- [x] Entrar desde la alerta al estudio que la provoca
 
 **Entregable:** una pantalla que responde "¿qué necesita mi atención hoy?" sin que
 tengas que buscarlo.

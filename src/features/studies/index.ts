@@ -1,10 +1,21 @@
-// API pública del feature. Nadie importa el interior de studies/ salvo por acá (D9).
+// Puerta pública client-safe del feature: tipos, lógica pura, copy.
+// Nada de acá toca el servidor, así que se puede importar desde cualquier lado
+// y testear sin variables de entorno.
+//
+// Las consultas viven en ./server, que sí es solo-servidor.
 export type { Study, StudyStage, StudyStatus, StudySummary, StudyTask, StudyStageFile } from './types'
-export { blockersFor, canClose, currentStage, daysUntil, isClosed, isOverdue, overdueStages, progress } from './model'
+export {
+  blockersFor,
+  canClose,
+  currentStage,
+  daysUntil,
+  isClosed,
+  isOverdue,
+  overdueStages,
+  progress,
+} from './model'
 export type { Blocker } from './model'
 export { studiesCopy, dueLabel } from './copy'
-export { listStudies, getStudy } from './queries'
-export { advanceStage, setTaskDone, createStudy } from './actions'
-export { NewStudyForm } from './components/new-study-form'
-export { AdvanceButton } from './components/advance-button'
-export { TaskToggle } from './components/task-toggle'
+
+// Los componentes NO se exportan desde acá: importan server actions, que tocan
+// el entorno al cargarse. Se importan por su ruta, desde ./components/*.
