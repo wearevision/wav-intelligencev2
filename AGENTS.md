@@ -25,6 +25,20 @@ ahí; si algo de allá parece útil, se re-decide y se reescribe).
 
 Si una decisión de arquitectura cambia, se edita `ARCHITECTURE.md` en el mismo commit.
 
+## Infraestructura
+
+| Recurso | Valor |
+|---|---|
+| Supabase | `lrnaiwilairvvnqlyxdq` · us-east-1 · org WAV |
+| R2 | pendiente (F1) |
+
+Las migraciones se nombran `YYYYMMDDHHMMSS_slug.sql`, no `001`, `002`. Con timestamps
+dos ramas en paralelo no pueden colisionar en el mismo número — que es exactamente lo
+que pasó en el repo anterior.
+
+Después de todo DDL, correr los advisors de Supabase (seguridad y rendimiento) y
+dejar el resultado limpio antes de commitear.
+
 ## Reglas duras
 
 - **Módulos por dominio.** Un feature (`src/features/<x>/`) nunca importa el interior de
