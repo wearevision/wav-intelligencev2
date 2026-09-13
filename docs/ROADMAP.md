@@ -167,6 +167,12 @@ esconderse dentro de una suma de duraciones.
 Falta el lado de escritorio también acá: unir los segmentos del 360 es de WAV
 Ingest y su diseño v3 todavía no lo contempla.
 
+**Importación de la planilla de convocatoria.** Una hoja por día y el bloque
+como columna (`09:00` / `13:00`), que es la forma real de la planilla de
+terreno. Se lee en el servidor y se muestra qué entraría antes de escribir
+nada. Trae rol, micrófono y segmento cliente / no cliente; el RUT, el celular,
+el mail y la patente se quedan en la planilla y nunca entran a la base.
+
 **Participantes, micrófonos y roles (D22).** Un listado editable por bloque:
 nombre, micrófono y rol. El rol decide qué entra al análisis —el moderador y la
 marca también llevan micrófono y no son opinión de consumidor— y viaja en el

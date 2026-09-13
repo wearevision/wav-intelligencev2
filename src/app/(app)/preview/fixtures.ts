@@ -313,27 +313,31 @@ export function previewPipelines(): SessionPipeline[] {
 
 /** Una sala con sus roles, y dos desajustes de micrófono a la vista. */
 export function previewParticipants(): Participant[] {
-  const en = (sessionId: string, rows: [string, number | null, Participant['role']][]) =>
-    rows.map(([name, micNumber, role], i) => ({
+  const en = (
+    sessionId: string,
+    rows: [string, number | null, Participant['role'], Participant['segment']][],
+  ) =>
+    rows.map(([name, micNumber, role, segment], i) => ({
       id: `p-${sessionId}-${i}`,
       sessionId,
       name,
       micNumber,
       seatNumber: null,
       role,
+      segment,
     }))
 
   return [
     ...en('s-d1b1', [
-      ['Carolina Reyes', 1, 'moderator'],
-      ['Paula Contreras', 3, 'participant'],
+      ['Carolina Reyes', 1, 'moderator', null],
+      ['Paula Contreras', 3, 'participant', 'client'],
       // Lleva el 5, que sí se grabó: la fila que calza.
-      ['Ignacio Soto', 5, 'participant'],
+      ['Ignacio Soto', 5, 'participant', 'non_client'],
       // Lleva el 9, del que no llegó grabación.
-      ['Marcela Díaz', 9, 'participant'],
-      ['Rodrigo Ávila', null, 'brand_staff'],
+      ['Marcela Díaz', 9, 'participant', 'non_client'],
+      ['Rodrigo Ávila', null, 'brand_staff', null],
     ]),
-    ...en('s-d1b2', [['Carolina Reyes', 1, 'moderator']]),
+    ...en('s-d1b2', [['Carolina Reyes', 1, 'moderator', null]]),
   ]
 }
 

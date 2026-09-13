@@ -1,10 +1,21 @@
-import type { ParticipantRole } from './types'
+import type { ParticipantRole, Segment } from './types'
 
 export const participantsCopy = {
   title: 'Participantes y micrófonos',
   hint: 'Quién habla en cada bloque y con qué micrófono. El rol decide qué entra al análisis.',
   empty: 'Este bloque todavía no tiene participantes.',
   add: 'Agregar',
+  importFile: 'Importar planilla',
+  importHint:
+    'La planilla de convocatoria: una hoja por día y una columna por bloque. Se lee y se muestra qué entraría antes de escribir nada.',
+  importChoose: 'Elegir archivo',
+  importReading: 'Leyendo…',
+  importConfirm: 'Importar',
+  importNothing: 'La planilla no trajo a nadie para los bloques de este estudio.',
+  importNoBlock: 'sin bloque en el estudio',
+  importAlready: (n: number) => `${n} ya están cargados`,
+  absent: (n: number) => (n === 1 ? '1 no asistió' : `${n} no asistieron`),
+  segment: 'Segmento',
   paste: 'Pegar listado',
   pasteHint: 'Una persona por línea. «Carolina Reyes, 3» o «3 Carolina Reyes».',
   pastePreview: 'Se van a agregar',
@@ -27,6 +38,11 @@ export const participantsCopy = {
     `Se grabó el micrófono ${mics.join(', ')} y no hay nadie asignado.`,
   withoutTrack: (names: string[]) => `Sin grabación del micrófono de ${names.join(', ')}.`,
 } as const
+
+export const segmentLabels: Record<Segment, string> = {
+  client: 'Cliente',
+  non_client: 'No cliente',
+}
 
 export const roleLabels: Record<ParticipantRole, string> = {
   participant: 'Invitado',

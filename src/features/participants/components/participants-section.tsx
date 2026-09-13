@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useTransition, type FormEvent } from 'react'
+import { useRef, useState, useTransition, type ChangeEvent, type FormEvent } from 'react'
 
-import { participantsCopy, roleLabels, roleNotes } from '../copy'
+import { participantsCopy, roleLabels, roleNotes, segmentLabels } from '../copy'
 import {
   ROLES,
   countsInAnalysis,
@@ -13,8 +13,15 @@ import {
   parseRoster,
   summarize,
 } from '../model'
-import type { Participant, ParticipantRole } from '../types'
-import { addParticipants, removeParticipant, updateParticipant } from '../actions'
+import type { Participant, ParticipantRole, Segment } from '../types'
+import {
+  addParticipants,
+  importRoster,
+  previewRoster,
+  removeParticipant,
+  updateParticipant,
+  type RosterPreview,
+} from '../actions'
 
 /** Un bloque, con los micrófonos que de verdad se grabaron en él. */
 export interface ParticipantBlock {
@@ -46,6 +53,8 @@ export function ParticipantsSection({
         <h2 className="text-sm font-medium text-muted">{participantsCopy.title}</h2>
         <p className="mt-1 text-xs text-muted">{participantsCopy.hint}</p>
       </div>
+
+      <RosterImport studyId={studyId} />
 
       <div className="flex flex-col gap-2">
         {blocks.map((block) => (
@@ -178,7 +187,12 @@ function PersonRow({
   person: Participant
   duplicated: boolean
   pending: boolean
-  onChange: (changes: { name?: string; micNumber?: number | null; role?: ParticipantRole }) => void
+  onChange: (changes: {
+    name?: string
+    micNumber?: number | null
+    role?: ParticipantRole
+    segment?: Segment | null
+  }) => void
   onRemove: () => void
 }) {
   return (
@@ -226,6 +240,25 @@ function PersonRow({
           </option>
         ))}
       </select>
+
+      {/* Solo los invitados tienen segmento: el moderador no es cliente ni deja
+          de serlo, y ofrecerle la opción invita a llenarla sin sentido. */}
+      {person.role === 'participant' && (
+        <select
+          value={person.segment ?? ''}
+          aria-label={participantsCopy.segment}
+          disabled={pending}
+          onChange={(e) => onChange({ segment: (e.target.value || null) as Segment | null })}
+          className="rounded-md border border-border bg-canvas px-2 py-1 text-xs outline-none focus:border-accent"
+        >
+          <option value="">{participantsCopy.segment}</option>
+          {(Object.keys(segmentLabels) as Segment[]).map((value) => (
+            <option key={value} value={value}>
+              {segmentLabels[value]}
+            </option>
+          ))}
+        </select>
+      )}
 
       {/* Que un rol quede fuera del análisis no debería descubrirse leyendo el
           informe: se dice en la misma fila donde se elige. */}
@@ -321,5 +354,177 @@ function PasteRoster({
         </button>
       </div>
     </form>
+  )
+}
+
+/**
+ * Importar la planilla de convocatoria.
+ *
+ * Se lee y se muestra qué entraría **antes** de escribir nada. No es cortesía:
+ * la planilla trae decisiones tomadas a mano —un micrófono anotado como frase,
+ * alguien que asistió sin bloque marcado— y meter cien personas para después
+ * descubrirlo cuesta mucho más que mirarlo una vez.
+ */
+function RosterImport({ studyId }: { studyId: string }) {
+  const router = useRouter()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [open, setOpen] = useState(false)
+  const [preview, setPreview] = useState<RosterPreview | null>(null)
+  const [pending, startTransition] = useTransition()
+
+  function onPick(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    startTransition(async () => {
+      const form = new FormData()
+      form.set('file', file)
+      setPreview(await previewRoster(studyId, form))
+    })
+  }
+
+  function confirm() {
+    if (!preview?.days || !preview.targets) return
+
+    const groups = preview.targets
+      .filter((target) => target.sessionId !== null)
+      .map((target) => ({
+        sessionId: target.sessionId as string,
+        people: preview
+          .days!.find((d) => d.dayNumber === target.dayNumber)!
+          .people.filter((p) => p.blockNumber === target.blockNumber)
+          .map((p) => ({
+            name: p.name,
+            micNumber: p.micNumber,
+            role: p.role,
+            segment: p.segment,
+          })),
+      }))
+      .filter((group) => group.people.length > 0)
+
+    startTransition(async () => {
+      const result = await importRoster(studyId, groups)
+      if (!result.ok) {
+        setPreview({ ok: false, message: result.message })
+        return
+      }
+      setPreview(null)
+      setOpen(false)
+      router.refresh()
+    })
+  }
+
+  const warnings = (preview?.days ?? []).flatMap((day) =>
+    day.warnings.map((text) => `${day.title}: ${text}`),
+  )
+  const absent = (preview?.days ?? []).reduce((sum, day) => sum + day.absent, 0)
+  const importable = (preview?.targets ?? []).filter((t) => t.sessionId !== null)
+
+  if (!open) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+        >
+          {participantsCopy.importFile}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
+      <p className="text-xs text-muted">{participantsCopy.importHint}</p>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => inputRef.current?.click()}
+          className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink disabled:opacity-40"
+        >
+          {pending ? participantsCopy.importReading : participantsCopy.importChoose}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            setPreview(null)
+          }}
+          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+        >
+          {participantsCopy.cancel}
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          hidden
+          accept=".xlsx,.xlsm"
+          aria-label={participantsCopy.importFile}
+          onChange={onPick}
+        />
+      </div>
+
+      {preview && !preview.ok && <p className="text-xs text-danger">{preview.message}</p>}
+
+      {preview?.ok && (
+        <div className="flex flex-col gap-2">
+          {importable.length === 0 ? (
+            <p className="text-xs text-warn">{participantsCopy.importNothing}</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {preview.targets!.map((target) => (
+                <li
+                  key={`${target.dayNumber}-${target.blockNumber}`}
+                  className="flex flex-wrap items-baseline gap-x-3 text-xs"
+                >
+                  <span className="text-muted tabular-nums">
+                    {target.code ?? `día ${target.dayNumber} · bloque ${target.blockNumber}`}
+                  </span>
+                  <span className="text-muted">{target.blockLabel}</span>
+                  <span>{participantsCopy.summary(target.people, target.people)}</span>
+                  {target.sessionId === null && (
+                    <span className="text-warn">{participantsCopy.importNoBlock}</span>
+                  )}
+                  {target.alreadyThere > 0 && (
+                    <span className="text-muted">
+                      {participantsCopy.importAlready(target.alreadyThere)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {absent > 0 && <p className="text-xs text-muted">{participantsCopy.absent(absent)}</p>}
+
+          {warnings.length > 0 && (
+            <ul className="flex flex-col gap-0.5">
+              {warnings.map((text) => (
+                <li key={text} className="text-xs text-warn">
+                  {text}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {importable.length > 0 && (
+            <div>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={confirm}
+                className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink disabled:opacity-40"
+              >
+                {pending ? participantsCopy.saving : participantsCopy.importConfirm}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

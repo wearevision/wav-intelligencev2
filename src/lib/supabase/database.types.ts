@@ -115,6 +115,7 @@ export type Database = {
           name: string
           role: string
           seat_number: number | null
+          segment: string | null
           session_id: string
         }
         Insert: {
@@ -124,6 +125,7 @@ export type Database = {
           name: string
           role?: string
           seat_number?: number | null
+          segment?: string | null
           session_id: string
         }
         Update: {
@@ -133,6 +135,7 @@ export type Database = {
           name?: string
           role?: string
           seat_number?: number | null
+          segment?: string | null
           session_id?: string
         }
       }

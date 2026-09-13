@@ -16,7 +16,7 @@ function person(
   micNumber: number | null,
   role: ParticipantRole = 'participant',
 ): Participant {
-  return { id: `p-${name}`, sessionId: 's1', name, micNumber, seatNumber: null, role }
+  return { id: `p-${name}`, sessionId: 's1', name, micNumber, seatNumber: null, role, segment: null }
 }
 
 describe('countsInAnalysis', () => {

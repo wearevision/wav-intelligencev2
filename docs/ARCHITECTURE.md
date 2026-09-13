@@ -358,6 +358,32 @@ el escritorio. Es un adaptador detrás del mismo paso, no otra arquitectura.
 
 ---
 
+## D24 — De la planilla entra lo que el análisis necesita, no todo · `Propuesta`
+
+La planilla de convocatoria trae RUT, celular, correo y patente de cada invitado.
+Nada de eso hace falta para transcribir ni para analizar: la atribución necesita
+nombre, micrófono y rol, y la comparación necesita el segmento cliente / no cliente.
+
+Se importa eso y se deja el resto en la planilla. Menos dato guardado es menos dato
+que proteger, y la base deja de ser un registro de datos personales de decenas de
+personas para ser lo que es: el registro de quién habló en cada bloque.
+
+Si algún día la app maneja la convocatoria (F4), el contacto entrará entonces y con
+esa decisión tomada a propósito, no de arrastre.
+
+Dos cosas que el archivo real enseñó y quedaron en el modelo:
+
+- **El bloque es una columna, no una fila.** Dos columnas de horario y un `1` que
+  marca en cuál estuvo cada persona. Una hoja por día.
+- **La celda del micrófono no siempre es un número.** A veces es `MIC03 am / MIC06 pm`
+  —la misma persona en los dos bloques con equipo distinto— y a veces es una frase
+  contando que el micrófono cambió de dueño a mitad de sesión. Lo primero se
+  interpreta; lo segundo **no**: sacarle el número a una nota le daría ese micrófono
+  a dos personas del mismo bloque y cruzaría la atribución sin que nada lo delate.
+  La persona entra sin micrófono y la nota se muestra.
+
+---
+
 ## Pendiente de decidir
 
 | Tema | Por qué aún no |

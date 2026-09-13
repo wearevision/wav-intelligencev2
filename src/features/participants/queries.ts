@@ -1,6 +1,6 @@
 import { createClient } from '@/server/supabase/server'
 
-import type { Participant, ParticipantRole } from './types'
+import type { Participant, ParticipantRole, Segment } from './types'
 
 /** Los participantes de todas las sesiones de un estudio. */
 export async function listStudyParticipants(studyId: string): Promise<Participant[]> {
@@ -18,7 +18,7 @@ export async function listStudyParticipants(studyId: string): Promise<Participan
 
   const { data, error } = await supabase
     .from('participants')
-    .select('id, session_id, name, mic_number, seat_number, role')
+    .select('id, session_id, name, mic_number, seat_number, role, segment')
     .in(
       'session_id',
       sessions.map((s) => s.id),
@@ -36,5 +36,6 @@ export async function listStudyParticipants(studyId: string): Promise<Participan
     micNumber: row.mic_number,
     seatNumber: row.seat_number,
     role: row.role as ParticipantRole,
+    segment: (row.segment as Segment | null) ?? null,
   }))
 }
