@@ -250,6 +250,32 @@ que el registro quede completo.
 
 ---
 
+## D20 — El casillero decide, no el orquestador · `Propuesta`
+
+Un paso del pipeline se salta **si y solo si su artifact de salida ya existe**. No
+hay un `if` por paso preguntando "¿esto ya se hizo?", ni una columna
+`hls_manifest_key` mirada desde tres lugares distintos.
+
+La alternativa era la del proyecto anterior: el orquestador revisa banderas antes de
+cada paso. Funciona hasta que aparece un productor nuevo —WAV Ingest transcodificando
+en local— y hay que agregar una columna y una rama por cada paso que ese productor
+pueda adelantar.
+
+Con el casillero, publicar el artifact **es** la forma de adelantar el trabajo. La app
+no necesita enterarse de quién lo hizo: encuentra la salida hecha y sigue. `producer`
+queda como dato para poder leer después qué se hizo dónde, no como condición.
+
+Consecuencias que hay que sostener:
+
+- **La clave del artifact es determinística** (`studies/{estudio}/{código}/artifacts/{tipo}.json`),
+  así que rehacer un paso pisa su salida en vez de acumular versiones huérfanas.
+- **Descartar un artifact es la única forma de forzar un paso.** No hay botón de
+  "correr igual": vaciar el casillero y volver a correr es la misma operación.
+- **`unique (session_id, kind)`** en la base. Sin eso, dos artifacts del mismo tipo
+  harían que "ya existe" dependa de cuál se lea primero.
+
+---
+
 ## Pendiente de decidir
 
 | Tema | Por qué aún no |

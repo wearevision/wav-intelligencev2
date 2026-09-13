@@ -1,4 +1,5 @@
 import type { MediaFile } from '@/features/media'
+import type { SessionPipeline } from '@/features/pipeline'
 import type { StudySession } from '@/features/sessions'
 import type { Study, StudyStage } from '@/features/studies'
 
@@ -177,6 +178,92 @@ export function previewMedia(): MediaFile[] {
       sourcePath: '/Volumes/WAV-01/mg-postventa/d1b2/VID_0012.insv',
       sourceHost: 'Disco WAV-01',
       createdAt: at,
+    },
+  ]
+}
+
+/** Los cuatro estados de una corrida, uno por bloque, para verlos juntos. */
+export function previewPipelines(): SessionPipeline[] {
+  const at = '2026-11-10T18:00:00.000Z'
+  return [
+    {
+      // Lista, con el inventario saltado porque WAV Ingest ya lo había hecho.
+      sessionId: 's-d1b1',
+      run: {
+        id: 'run-1',
+        sessionId: 's-d1b1',
+        status: 'done',
+        startedAt: at,
+        finishedAt: at,
+        error: null,
+        createdAt: at,
+        steps: [
+          { id: 'st-1', name: 'inventario', position: 1, status: 'skipped', attempt: 0, error: null },
+          {
+            id: 'st-2',
+            name: 'plan_transcripcion',
+            position: 2,
+            status: 'done',
+            attempt: 1,
+            error: null,
+          },
+        ],
+      },
+      artifacts: [
+        {
+          id: 'a-1',
+          sessionId: 's-d1b1',
+          kind: 'session_inventory',
+          storageKey: 'studies/a/d1b1/artifacts/session_inventory.json',
+          producer: 'local',
+          bytes: 1840,
+          createdAt: at,
+        },
+        {
+          id: 'a-2',
+          sessionId: 's-d1b1',
+          kind: 'transcription_plan',
+          storageKey: 'studies/a/d1b1/artifacts/transcription_plan.json',
+          producer: 'cloud',
+          bytes: 920,
+          createdAt: at,
+        },
+      ],
+    },
+    {
+      // Caída en el primer paso: el bloque tiene video pero no audio.
+      sessionId: 's-d1b2',
+      run: {
+        id: 'run-2',
+        sessionId: 's-d1b2',
+        status: 'failed',
+        startedAt: at,
+        finishedAt: at,
+        error: 'El bloque no tiene audio: no hay nada que transcribir.',
+        createdAt: at,
+        steps: [
+          { id: 'st-3', name: 'inventario', position: 1, status: 'done', attempt: 1, error: null },
+          {
+            id: 'st-4',
+            name: 'plan_transcripcion',
+            position: 2,
+            status: 'failed',
+            attempt: 2,
+            error: 'El bloque no tiene audio: no hay nada que transcribir.',
+          },
+        ],
+      },
+      artifacts: [
+        {
+          id: 'a-3',
+          sessionId: 's-d1b2',
+          kind: 'session_inventory',
+          storageKey: 'studies/a/d1b2/artifacts/session_inventory.json',
+          producer: 'cloud',
+          bytes: 610,
+          createdAt: at,
+        },
+      ],
     },
   ]
 }

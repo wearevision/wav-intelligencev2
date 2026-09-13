@@ -19,6 +19,10 @@ export interface StoragePort {
   presignGet(key: string, expiresInSeconds?: number): Promise<string>
   exists(key: string): Promise<boolean>
   remove(key: string): Promise<void>
+  /** Escritura desde el servidor. Solo para objetos chicos, como los artifacts. */
+  put(key: string, body: string | Uint8Array, contentType?: string): Promise<void>
+  /** Lectura desde el servidor. Igual: chicos. El media pesado no pasa por acá. */
+  getText(key: string): Promise<string>
 }
 
 interface R2Config {
@@ -102,5 +106,19 @@ export const storage: StoragePort = {
   async remove(key) {
     const { client, bucket } = connect()
     await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+  },
+
+  async put(key, body, contentType) {
+    const { client, bucket } = connect()
+    await client.send(
+      new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }),
+    )
+  },
+
+  async getText(key) {
+    const { client, bucket } = connect()
+    const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+    if (!result.Body) throw new Error(`El objeto ${key} llegó vacío`)
+    return result.Body.transformToString()
   },
 }

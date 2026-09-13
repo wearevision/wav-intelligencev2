@@ -4,7 +4,7 @@ Cada fase cierra con algo **demostrable en pantalla**, no con "el módulo X est�
 El orden sigue el valor para quien coordina: primero saber en qué estado está todo,
 después automatizar los tramos.
 
-Estado: `F0` · `F1` · `F2` · `F3` · `F5` · `F6a` cerradas · `F6b · Pipeline como datos` es lo siguiente.
+Estado: `F0` · `F1` · `F2` · `F3` · `F5` · `F6a` · `F6b` cerradas · `F6c · Transcripción` es lo siguiente.
 `F4 · Convocatoria` queda pendiente y no bloquea a F6.
 
 Requisitos confirmados: [SPEC.md](SPEC.md). Despliegue diferido — la app corre local
@@ -137,6 +137,24 @@ borrar— se verificó contra el bucket real usando el adaptador de la app.
 
 Falta el lado de escritorio: el video sigue sin llegar hasta que WAV Ingest v3
 transcodifique y registre `source_path` / `source_host`.
+
+**F6b cerrada.** Los pasos son filas, no un array en el código: `pipeline_runs`,
+`pipeline_steps` y `artifacts`. La regla de D20 —un paso se salta si y solo si
+su artifact ya existe— está implementada y probada, y con ella re-correr una
+corrida caída no repite lo que ya salió bien.
+
+Dos pasos reales de punta a punta: **Inventario** (contrasta la base contra el
+bucket y falla nombrando lo que no está) y **Plan de transcripción** (decide la
+rama de D18 y cruza cada micrófono con su participante). El segundo lee el
+artifact del primero, no la base, que es lo que hace que un inventario
+producido en local sirva igual.
+
+Verificado: 47 tests del modelo y de los pasos, más 16 casos de esquema y RLS
+contra la base real —corrida única viva por bloque, artifact único por tipo,
+cascada al borrar, y qué ve cada rol.
+
+El runner es la propia app por ahora. Trigger.dev entra cuando un paso dure lo
+suficiente como para no poder correr dentro de un request; los dos actuales no.
 
 **Entregable:** subir la grabación de una sesión real y leer su transcripción.
 

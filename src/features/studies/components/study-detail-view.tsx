@@ -2,6 +2,8 @@ import Link from 'next/link'
 
 import type { MediaFile } from '@/features/media'
 import { MediaSection } from '@/features/media/components/media-section'
+import type { SessionPipeline } from '@/features/pipeline'
+import { PipelineSection } from '@/features/pipeline/components/pipeline-section'
 import { SessionsSection } from '@/features/sessions/components/sessions-section'
 import type { StudySession } from '@/features/sessions'
 
@@ -19,15 +21,25 @@ export function StudyDetailView({
   study,
   sessions,
   media,
+  pipelines,
   today,
 }: {
   study: Study
   sessions: readonly StudySession[]
   media: readonly MediaFile[]
+  pipelines: readonly SessionPipeline[]
   today: Date
 }) {
   const current = currentStage(study.stages)
   const { done, total } = progress(study.stages)
+
+  const withMedia = new Set(media.map((f) => f.sessionId))
+  const blocks = sessions.map((s) => ({
+    id: s.id,
+    code: s.code,
+    name: s.name,
+    hasMedia: withMedia.has(s.id),
+  }))
 
   return (
     <div className="flex flex-col gap-10">
@@ -60,6 +72,10 @@ export function StudyDetailView({
       {/* Sin bloques no hay dónde poner el material: la grilla es el destino. */}
       {sessions.length > 0 && (
         <MediaSection studyId={study.id} sessions={sessions} files={media} />
+      )}
+
+      {sessions.length > 0 && (
+        <PipelineSection studyId={study.id} blocks={blocks} pipelines={pipelines} />
       )}
 
       <section className="flex flex-col gap-3">

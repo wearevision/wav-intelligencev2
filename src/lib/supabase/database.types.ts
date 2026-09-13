@@ -1,10 +1,9 @@
 // Generado desde el schema de Supabase. No editar a mano.
 // Regenerar: npx supabase gen types typescript --project-id lrnaiwilairvvnqlyxdq
 //
-// Nota: moderator_name (sessions) y mic_number (participants) se agregaron a
-// mano, igual que media_files y el enum media_kind, porque la sesión que
-// aplicó esas migraciones no podía correr el CLI.
-// Conviene regenerar con el comando de arriba para descartar cualquier deriva.
+// Contrastado contra el schema real el 2026-09-13, tabla por tabla: sin deriva.
+// Las columnas que en su momento se agregaron a mano —moderator_name,
+// mic_number, media_files, media_kind— coinciden con lo que genera el CLI.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
@@ -23,6 +22,38 @@ export type Database = {
   }
   public: {
     Tables: WithRelationships<{
+      artifacts: {
+        Row: {
+          bytes: number | null
+          checksum: string | null
+          created_at: string
+          id: string
+          kind: string
+          producer: string
+          session_id: string
+          storage_key: string
+        }
+        Insert: {
+          bytes?: number | null
+          checksum?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          producer: string
+          session_id: string
+          storage_key: string
+        }
+        Update: {
+          bytes?: number | null
+          checksum?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          producer?: string
+          session_id?: string
+          storage_key?: string
+        }
+      }
       media_files: {
         Row: {
           bytes: number | null
@@ -91,6 +122,70 @@ export type Database = {
           name?: string
           seat_number?: number | null
           session_id?: string
+        }
+      }
+      pipeline_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          session_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          session_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          session_id?: string
+          started_at?: string | null
+          status?: string
+        }
+      }
+      pipeline_steps: {
+        Row: {
+          attempt: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          name: string
+          position: number
+          run_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          attempt?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          name: string
+          position: number
+          run_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempt?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          name?: string
+          position?: number
+          run_id?: string
+          started_at?: string | null
+          status?: string
         }
       }
       profiles: {

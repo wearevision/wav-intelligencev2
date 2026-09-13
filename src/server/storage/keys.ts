@@ -43,3 +43,14 @@ export function mediaKey(
 export function randomSuffix(): string {
   return crypto.randomUUID().slice(0, 8)
 }
+
+/**
+ * `studies/{estudio}/{código}/artifacts/{tipo}.json`
+ *
+ * Vive junto al material que describe y no en un árbol aparte: al mirar la
+ * carpeta de un bloque se ve la grabación y lo que se derivó de ella.
+ */
+export function artifactKey(studyId: string, code: string | null, kind: string): string {
+  const block = code ?? 'sin-bloque'
+  return `studies/${studyId}/${block}/artifacts/${safeFilename(kind)}.json`
+}
