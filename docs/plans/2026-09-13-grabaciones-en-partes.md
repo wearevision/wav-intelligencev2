@@ -46,10 +46,23 @@ Familias de nombres que el agrupador reconoce:
 
 | Equipo | Forma | Grabación | Parte | Pista |
 |---|---|---|---|---|
+| **Fecha y hora** | `2026-06-02-21-48-09.wav` | encadenada por reloj | por orden | — |
 | Insta360 | `VID_20261110_130000_00_001.insv` | `VID_{fecha}_{hora}` | `_{001}` | `_{00}` = lente |
 | Zoom H-series | `ZOOM0001_Tr3.WAV` | `ZOOM{0001}` | por toma | `Tr{3}` = micrófono |
 | Tascam DR | `DR0000_0002.wav` | `DR{0000}` | `_{0002}` | — |
 | Genérico | `loquesea-002.wav` | el nombre sin el número | número final | — |
+
+**La primera es la que usan los equipos de este estudio**, y no se agrupa como
+las otras. Los nombres no comparten ningún prefijo —`…21-18-09`, `…21-48-09`,
+`…22-18-09`—, así que el único que dice que son la misma toma es el reloj: se
+encadenan mientras el inicio de una parte caiga donde terminó la anterior, o
+poco después. Un salto de más de veinte minutos abre una grabación nueva,
+porque entre el bloque de la mañana y el de la tarde pasan horas.
+
+Con esta familia la hora de inicio sale **del nombre y no de la marca del
+archivo**, que es mejor: copiar la carpeta de un disco a otro reescribe la marca
+y no toca el nombre. Después de un respaldo, el nombre suele ser lo único que
+todavía dice la verdad.
 
 Lo que no calce con ninguna cae en la bandeja de siempre y se agrupa a mano.
 Un nombre desconocido es un patrón que falta, no un archivo que sobra.

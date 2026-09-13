@@ -11,7 +11,7 @@
  * invisible, que es la peor clase de error en este sistema.
  */
 
-export type RecorderFamily = 'insta360' | 'zoom' | 'tascam' | 'generic'
+export type RecorderFamily = 'insta360' | 'zoom' | 'tascam' | 'generic' | 'timestamp'
 
 export interface ParsedName {
   /** Qué grabación. Las partes de una misma grabación comparten esta clave. */
@@ -95,6 +95,38 @@ function parseGeneric(name: string): ParsedName | null {
 
 const PARSERS = [parseInsta360, parseZoom, parseTascam, parseGeneric]
 
+/**
+ * `2026-06-02-21-17-10.wav` · `20260602_211710.wav` · `2026-06-02 21.17.10.wav`
+ *
+ * Muchas grabadoras nombran cada corte con **la hora en que empezó**. Eso vale
+ * más que la marca del archivo: copiar una carpeta de un disco a otro reescribe
+ * la marca y no toca el nombre, así que después de un respaldo el nombre suele
+ * ser lo único que todavía dice la verdad.
+ *
+ * La hora se interpreta local, que es la del reloj de la grabadora.
+ */
+export function parseTimestampName(filename: string): Date | null {
+  const name = stripExtension(filename)
+  const m = /(?:^|[^\d])(\d{4})[-_.]?(\d{2})[-_.]?(\d{2})[-_ T]?(\d{2})[-_.:]?(\d{2})[-_.:]?(\d{2})(?:[^\d]|$)/.exec(
+    name,
+  )
+  if (!m) return null
+
+  const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ]
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  if (hour > 23 || minute > 59 || second > 59) return null
+
+  const date = new Date(year, month - 1, day, hour, minute, second)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 /** Null cuando el nombre no se parece a nada conocido: se agrupa a mano. */
 export function parseNativeName(filename: string): ParsedName | null {
   const name = stripExtension(filename)
@@ -111,6 +143,11 @@ export function parseNativeName(filename: string): ParsedName | null {
 
 export interface PartInput {
   filename: string
+  /**
+   * Cuándo empezó a grabarse, si el nombre lo dice. Manda sobre `modifiedAt`:
+   * copiar una carpeta reescribe la marca del archivo y no toca el nombre.
+   */
+  startsAt?: Date | null
   /** Marca de tiempo del archivo. En un equipo es cuándo terminó de escribirse. */
   modifiedAt?: Date | null
   durationSeconds?: number | null
@@ -146,26 +183,44 @@ export interface Recording {
 /** Un hueco menor que esto es redondeo del reloj del equipo, no una pausa. */
 const GAP_TOLERANCE_S = 2
 
-function hasClockAndDuration(parts: readonly PartInput[]): boolean {
-  return parts.every(
-    (p) =>
-      p.modifiedAt instanceof Date &&
-      !Number.isNaN(p.modifiedAt.getTime()) &&
-      typeof p.durationSeconds === 'number' &&
-      p.durationSeconds > 0,
-  )
+/**
+ * Hasta acá un hueco se lee como pausa dentro de la misma grabación; más allá,
+ * como dos grabaciones distintas.
+ *
+ * Una pausa entre ejercicios dura minutos; entre el bloque de la mañana y el de
+ * la tarde pasan horas. Veinte minutos parte las dos situaciones con holgura, y
+ * de todos modos el hueco se muestra: si el corte quedó mal, se ve.
+ */
+const MAX_PAUSE_S = 20 * 60
+
+function isDate(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime())
 }
 
 /**
- * Cuándo empezó cada parte.
+ * Cuándo empezó una parte, en milisegundos.
  *
- * La marca del archivo es cuándo **terminó** de escribirse, así que el inicio
- * es esa marca menos lo que dura. Restar es lo que permite ver el hueco: si
- * alguien detuvo la grabación cuatro minutos, el inicio de la parte siguiente
- * queda cuatro minutos más allá de donde terminó la anterior.
+ * Si el nombre trae la hora, esa. Si no, la marca del archivo menos lo que
+ * dura: esa marca es cuándo **terminó** de escribirse. Restar es lo que permite
+ * ver el hueco: cuando alguien detiene la grabación cuatro minutos, el inicio
+ * de la parte siguiente queda cuatro minutos más allá del final de la anterior.
  */
+export function startOf(part: PartInput): number | null {
+  if (isDate(part.startsAt)) return part.startsAt.getTime()
+  if (isDate(part.modifiedAt) && typeof part.durationSeconds === 'number') {
+    return part.modifiedAt.getTime() - part.durationSeconds * 1000
+  }
+  return null
+}
+
+function hasClockAndDuration(parts: readonly PartInput[]): boolean {
+  return parts.every(
+    (p) => startOf(p) !== null && typeof p.durationSeconds === 'number' && p.durationSeconds > 0,
+  )
+}
+
 function startTimes(parts: readonly PartInput[]): number[] {
-  return parts.map((p) => (p.modifiedAt as Date).getTime() - (p.durationSeconds as number) * 1000)
+  return parts.map((p) => startOf(p) as number)
 }
 
 export function computeOffsets(parts: readonly PartInput[]): {
@@ -221,7 +276,15 @@ export function groupRecordings(files: readonly PartInput[]): {
   const buckets = new Map<string, { parsed: ParsedName; file: PartInput }[]>()
   const loose: PartInput[] = []
 
+  // Los nombres con fecha y hora no se agrupan por prefijo —no hay ninguno en
+  // común— sino encadenando el final de una parte con el inicio de la
+  // siguiente. Se resuelven aparte y antes que el resto.
+  const chained = chainByTime(files)
+  const claimed = new Set(chained.flatMap((r) => r.parts.map((p) => p.filename)))
+
   for (const file of files) {
+    if (claimed.has(file.filename)) continue
+
     const parsed = parseNativeName(file.filename)
     if (!parsed) {
       loose.push(file)
@@ -260,8 +323,77 @@ export function groupRecordings(files: readonly PartInput[]): {
     })
   }
 
+  recordings.push(...chained)
   recordings.sort((a, b) => a.key.localeCompare(b.key))
   return { recordings, loose }
+}
+
+/**
+ * Agrupa los archivos cuyo nombre trae la hora, encadenándolos.
+ *
+ * Una grabadora que corta cada media hora entrega `…21-18-09`, `…21-48-09`,
+ * `…22-18-09`: no comparten prefijo, y solo el reloj dice que son la misma
+ * toma. Se encadena mientras el inicio de una parte caiga donde terminó la
+ * anterior, o poco después; un salto más grande abre una grabación nueva,
+ * porque entre el bloque de la mañana y el de la tarde pasan horas.
+ *
+ * Sin duración no se puede encadenar nada: no se sabe dónde termina cada parte.
+ */
+function chainByTime(files: readonly PartInput[]): Recording[] {
+  const dated = files
+    .map((file) => ({
+      file,
+      startsAt: file.startsAt ?? parseTimestampName(file.filename),
+    }))
+    .filter(
+      (e): e is { file: PartInput; startsAt: Date } =>
+        e.startsAt instanceof Date &&
+        !Number.isNaN(e.startsAt.getTime()) &&
+        typeof e.file.durationSeconds === 'number' &&
+        e.file.durationSeconds > 0,
+    )
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+
+  if (dated.length < 2) return []
+
+  const chains: (typeof dated)[] = []
+  let current: typeof dated = [dated[0]!]
+
+  for (let i = 1; i < dated.length; i++) {
+    const previous = current[current.length - 1]!
+    const endOfPrevious =
+      previous.startsAt.getTime() + (previous.file.durationSeconds as number) * 1000
+    const gap = (dated[i]!.startsAt.getTime() - endOfPrevious) / 1000
+
+    if (gap <= MAX_PAUSE_S) current.push(dated[i]!)
+    else {
+      chains.push(current)
+      current = [dated[i]!]
+    }
+  }
+  chains.push(current)
+
+  return chains
+    .filter((chain) => chain.length > 1)
+    .map((chain) => {
+      const parts = chain.map((e) => ({ ...e.file, startsAt: e.startsAt }))
+      const { offsets, gaps, assumedContiguous } = computeOffsets(parts)
+
+      return {
+        // La hora de inicio identifica la grabación mejor que cualquier
+        // prefijo: es lo que la distingue de la del bloque siguiente.
+        key: chain[0]!.file.filename,
+        family: 'timestamp' as const,
+        trackNumber: null,
+        parts: parts.map((part, i) => ({
+          ...part,
+          partNumber: i + 1,
+          offsetSeconds: offsets[i] ?? null,
+        })),
+        gaps,
+        assumedContiguous,
+      }
+    })
 }
 
 /** `4 min` / `1 h 12 min` / `38 s` — para contar un hueco en palabras. */

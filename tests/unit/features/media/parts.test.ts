@@ -5,6 +5,7 @@ import {
   formatGap,
   groupRecordings,
   parseNativeName,
+  parseTimestampName,
 } from '@/features/media/parts'
 
 const T0 = new Date('2026-11-10T13:00:00.000Z').getTime()
@@ -207,5 +208,114 @@ describe('formatGap', () => {
     expect(formatGap(38)).toBe('38 s')
     expect(formatGap(240)).toBe('4 min')
     expect(formatGap(4320)).toBe('1 h 12 min')
+  })
+})
+
+describe('parseTimestampName', () => {
+  it('lee la hora que la grabadora puso en el nombre', () => {
+    const at = parseTimestampName('2026-06-02-21-17-10.wav')!
+    expect(at.getFullYear()).toBe(2026)
+    expect(at.getMonth()).toBe(5)
+    expect(at.getDate()).toBe(2)
+    expect(at.getHours()).toBe(21)
+    expect(at.getMinutes()).toBe(17)
+    expect(at.getSeconds()).toBe(10)
+  })
+
+  it('acepta las formas compactas', () => {
+    expect(parseTimestampName('20260602_211710.wav')).toEqual(
+      parseTimestampName('2026-06-02-21-17-10.wav'),
+    )
+  })
+
+  it('no confunde otras convenciones con una fecha', () => {
+    expect(parseTimestampName('d1b1-sala.wav')).toBeNull()
+    expect(parseTimestampName('DR0000_0001.wav')).toBeNull()
+    expect(parseTimestampName('ZOOM0001_Tr3.WAV')).toBeNull()
+  })
+
+  it('rechaza una fecha imposible en vez de corregirla sola', () => {
+    expect(parseTimestampName('2026-13-02-21-17-10.wav')).toBeNull()
+    expect(parseTimestampName('2026-06-02-25-17-10.wav')).toBeNull()
+  })
+})
+
+describe('groupRecordings · encadenado por hora', () => {
+  /** El listado real: la grabadora corta cada 30 min desde las 21:18. */
+  const REAL = [
+    { filename: '2026-06-02-21-17-10.wav', durationSeconds: 4 },
+    { filename: '2026-06-02-21-18-09.wav', durationSeconds: 1800 },
+    { filename: '2026-06-02-21-48-09.wav', durationSeconds: 1800 },
+    { filename: '2026-06-02-22-18-09.wav', durationSeconds: 1800 },
+    { filename: '2026-06-02-22-48-09.wav', durationSeconds: 1800 },
+    { filename: '2026-06-02-23-18-09.wav', durationSeconds: 1800 },
+    { filename: '2026-06-02-23-48-09.wav', durationSeconds: 1800 },
+    { filename: '2026-06-03-00-18-09.wav', durationSeconds: 1588 },
+  ]
+
+  it('encadena los ocho archivos en una sola grabación', () => {
+    const { recordings, loose } = groupRecordings(REAL)
+
+    expect(recordings).toHaveLength(1)
+    expect(recordings[0]!.parts).toHaveLength(8)
+    expect(recordings[0]!.family).toBe('timestamp')
+    expect(loose).toEqual([])
+  })
+
+  it('los desfases salen de la hora del nombre y cruzan la medianoche', () => {
+    const { recordings } = groupRecordings(REAL)
+    const offsets = recordings[0]!.parts.map((p) => p.offsetSeconds)
+
+    expect(offsets[1]).toBe(59)
+    // 00:18:09 del día siguiente, a tres horas y un minuto del primer archivo.
+    expect(offsets[7]).toBe(10_859)
+  })
+
+  it('marca el arranque en falso como una pausa, no lo esconde', () => {
+    const { recordings } = groupRecordings(REAL)
+    expect(recordings[0]!.gaps).toEqual([{ afterPart: 1, seconds: 55 }])
+  })
+
+  it('un salto de horas abre una grabación nueva: mañana y tarde', () => {
+    const { recordings } = groupRecordings([
+      { filename: '2026-06-02-10-00-00.wav', durationSeconds: 1800 },
+      { filename: '2026-06-02-10-30-00.wav', durationSeconds: 1800 },
+      { filename: '2026-06-02-16-00-00.wav', durationSeconds: 1800 },
+      { filename: '2026-06-02-16-30-00.wav', durationSeconds: 1800 },
+    ])
+
+    expect(recordings).toHaveLength(2)
+    expect(recordings.map((r) => r.parts.length)).toEqual([2, 2])
+  })
+
+  it('los ordena por hora aunque lleguen desordenados', () => {
+    const { recordings } = groupRecordings([
+      { filename: '2026-06-02-21-48-09.wav', durationSeconds: 1800 },
+      { filename: '2026-06-02-21-18-09.wav', durationSeconds: 1800 },
+    ])
+
+    expect(recordings[0]!.parts.map((p) => p.filename)).toEqual([
+      '2026-06-02-21-18-09.wav',
+      '2026-06-02-21-48-09.wav',
+    ])
+  })
+
+  it('sin duración no se encadena: no se sabe dónde termina cada parte', () => {
+    const { recordings, loose } = groupRecordings([
+      { filename: '2026-06-02-21-18-09.wav' },
+      { filename: '2026-06-02-21-48-09.wav' },
+    ])
+
+    expect(recordings).toEqual([])
+    expect(loose).toHaveLength(2)
+  })
+
+  it('un solo archivo con fecha sigue siendo un archivo suelto', () => {
+    const { recordings, loose } = groupRecordings([
+      { filename: '2026-06-02-21-18-09.wav', durationSeconds: 1800 },
+    ])
+
+    expect(recordings).toEqual([])
+    expect(loose).toHaveLength(1)
   })
 })

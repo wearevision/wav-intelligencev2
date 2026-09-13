@@ -14,7 +14,7 @@ import {
   type MediaKind,
 } from '../model'
 import { readDurations } from '../duration'
-import { formatGap, groupRecordings, type PartInput } from '../parts'
+import { formatGap, groupRecordings, parseTimestampName, type PartInput } from '../parts'
 import { deleteMediaFile, mediaFileUrl, presignMediaUpload, registerMediaFile } from '../actions'
 import type { MediaFile } from '../types'
 
@@ -44,6 +44,8 @@ interface QueueItem {
   durationSeconds: number | null
   /** Aviso de la grabación a la que pertenece, ya redactado. */
   note: string | null
+  /** true cuando el bloque lo eligió una persona y no el emparejador. */
+  manual: boolean
 }
 
 /**
@@ -144,6 +146,9 @@ export function MediaSection({
 
     const inputs: PartInput[] = list.map((file, i) => ({
       filename: file.name,
+      // Muchas grabadoras ponen la hora de inicio en el nombre. Vale más que la
+      // marca del archivo: copiar la carpeta reescribe la marca y no el nombre.
+      startsAt: parseTimestampName(file.name),
       modifiedAt: new Date(file.lastModified),
       durationSeconds: durations[i],
     }))
@@ -157,6 +162,7 @@ export function MediaSection({
       const { recordings } = groupRecordings([
         ...pending.map((i) => ({
           filename: i.file.name,
+          startsAt: parseTimestampName(i.file.name),
           modifiedAt: new Date(i.file.lastModified),
           durationSeconds: i.durationSeconds,
         })),
@@ -183,9 +189,10 @@ export function MediaSection({
       for (const recording of recordings) {
         const first = recording.parts[0]!
         const start =
-          first.modifiedAt && first.durationSeconds
+          first.startsAt ??
+          (first.modifiedAt && first.durationSeconds
             ? new Date(first.modifiedAt.getTime() - first.durationSeconds * 1000)
-            : (first.modifiedAt ?? null)
+            : (first.modifiedAt ?? null))
         anchors.set(recording.key, { filename: first.filename, modifiedAt: start })
       }
 
@@ -195,7 +202,10 @@ export function MediaSection({
           const anchor = belongs ? anchors.get(belongs.key) : null
           return anchor
             ? { filename: anchor.filename, modifiedAt: anchor.modifiedAt }
-            : { filename: file.name, modifiedAt: inputs[i]!.modifiedAt ?? null }
+            : {
+                filename: file.name,
+                modifiedAt: inputs[i]!.startsAt ?? inputs[i]!.modifiedAt ?? null,
+              }
         }),
         blocks,
       )
@@ -237,6 +247,7 @@ export function MediaSection({
             partNumber: belongs?.part ?? null,
             durationSeconds: durations[i] ?? null,
             note: belongs?.note ?? null,
+            manual: false,
           }
         }),
       ]
@@ -554,7 +565,7 @@ function RecordingRow({
           value={head.sessionId ?? ''}
           disabled={locked}
           aria-label={mediaCopy.chooseBlock}
-          onChange={(e) => onChange({ sessionId: e.target.value || null })}
+          onChange={(e) => onChange({ sessionId: e.target.value || null, manual: true })}
           className="rounded-md border border-border bg-canvas px-2 py-1 text-xs outline-none focus:border-accent"
         >
           <option value="">{mediaCopy.chooseBlock}</option>
@@ -580,7 +591,7 @@ function RecordingRow({
           ))}
         </select>
 
-        <span className="text-xs text-muted">{head.reason}</span>
+        {!head.manual && <span className="text-xs text-muted">{head.reason}</span>}
       </div>
 
       <ul className="mt-2 flex flex-col gap-1 border-l border-border pl-3">
@@ -645,7 +656,7 @@ function QueueRow({
           value={item.sessionId ?? ''}
           disabled={locked}
           aria-label={mediaCopy.chooseBlock}
-          onChange={(e) => onChange({ sessionId: e.target.value || null })}
+          onChange={(e) => onChange({ sessionId: e.target.value || null, manual: true })}
           className="rounded-md border border-border bg-canvas px-2 py-1 text-xs outline-none focus:border-accent"
         >
           <option value="">{mediaCopy.chooseBlock}</option>
@@ -683,7 +694,7 @@ function QueueRow({
           </span>
         )}
 
-        <span className="text-xs text-muted">{item.reason}</span>
+        {!item.manual && <span className="text-xs text-muted">{item.reason}</span>}
       </div>
 
       {item.status === 'uploading' && (

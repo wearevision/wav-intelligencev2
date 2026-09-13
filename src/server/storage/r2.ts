@@ -45,7 +45,12 @@ function readConfig(): R2Config {
     .map(([k]) => k)
 
   if (missing.length > 0) {
-    throw new Error(`Falta configurar R2. Variables ausentes: ${missing.join(', ')}`)
+    // Next lee el entorno al arrancar, así que la causa más común no es que
+    // falten en el archivo sino que el servidor siga corriendo con el de antes.
+    throw new Error(
+      `Falta configurar R2 en .env.local: ${missing.join(', ')}. ` +
+        'Si ya las agregaste, reinicia el servidor de desarrollo.',
+    )
   }
 
   return {
