@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { blockersFor, currentStage, daysUntil, isOverdue, progress } from '../model'
+import { blockersFor, currentStage, progress, stageDue } from '../model'
 import { dueLabel, studiesCopy } from '../copy'
 import type { Study, StudyStage } from '../types'
 
@@ -52,12 +52,7 @@ export function StudyDetailView({ study, today }: { study: Study; today: Date })
                 <span className="text-xs text-muted tabular-nums">{stage.position}</span>
                 <span className="text-sm">{stage.name}</span>
               </span>
-              <span className="flex items-baseline gap-3 text-xs">
-                <span className={isOverdue(stage, today) ? 'text-danger' : 'text-muted'}>
-                  {stage.dueOn ? dueLabel(daysUntil(stage.dueOn, today)) : ''}
-                </span>
-                <span className="text-muted">{studiesCopy.statusLabel[stage.status]}</span>
-              </span>
+              <StageDue stage={stage} today={today} />
             </li>
           ))}
         </ol>
@@ -76,12 +71,13 @@ function StageDetail({
   today: Date
 }) {
   const blockers = blockersFor(stage)
+  const due = stageDue(stage, today)
 
   return (
     <div className="mt-5 flex flex-col gap-5">
-      {stage.dueOn ? (
-        <p className={isOverdue(stage, today) ? 'text-sm text-danger' : 'text-sm text-muted'}>
-          {dueLabel(daysUntil(stage.dueOn, today))}
+      {due ? (
+        <p className={due.overdue ? 'text-sm text-danger' : 'text-sm text-muted'}>
+          {dueLabel(due.days)}
         </p>
       ) : null}
 
@@ -119,5 +115,19 @@ function StageDetail({
         <AdvanceButton stageId={stage.id} studyId={studyId} disabled={blockers.length > 0} />
       </div>
     </div>
+  )
+}
+
+/** Vencimiento y estado de una etapa en la lista. */
+function StageDue({ stage, today }: { stage: StudyStage; today: Date }) {
+  const due = stageDue(stage, today)
+
+  return (
+    <span className="flex items-baseline gap-3 text-xs">
+      <span className={due?.overdue ? 'text-danger' : 'text-muted'}>
+        {due ? dueLabel(due.days) : ''}
+      </span>
+      <span className="text-muted">{studiesCopy.statusLabel[stage.status]}</span>
+    </span>
   )
 }

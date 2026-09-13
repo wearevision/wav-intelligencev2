@@ -8,6 +8,7 @@ import {
   isOverdue,
   overdueStages,
   progress,
+  stageDue,
 } from '@/features/studies/model'
 import type { Study, StudyStage, StudyStageFile, StudyTask } from '@/features/studies/types'
 
@@ -133,6 +134,34 @@ describe('progress', () => {
       stage({ position: 3, status: 'pending' }),
     ]
     expect(progress(stages)).toEqual({ done: 2, total: 3 })
+  })
+})
+
+describe('stageDue', () => {
+  it('no devuelve vencimiento para una etapa cerrada, aunque su fecha haya pasado', () => {
+    // El bug que originó esta función: la fila mostraba "Atrasada · 24 d"
+    // al lado de "Cerrada", que se contradicen.
+    expect(stageDue(stage({ status: 'done', dueOn: '2026-08-19' }), TODAY)).toBeNull()
+  })
+
+  it('tampoco para una etapa omitida', () => {
+    expect(stageDue(stage({ status: 'skipped', dueOn: '2026-08-19' }), TODAY)).toBeNull()
+  })
+
+  it('no devuelve nada para una etapa abierta sin fecha', () => {
+    expect(stageDue(stage({ dueOn: null }), TODAY)).toBeNull()
+  })
+
+  it('marca atrasada una etapa abierta con fecha pasada', () => {
+    expect(stageDue(stage({ dueOn: '2026-09-03' }), TODAY)).toEqual({ days: -9, overdue: true })
+  })
+
+  it('no marca atrasada la que vence hoy', () => {
+    expect(stageDue(stage({ dueOn: '2026-09-12' }), TODAY)).toEqual({ days: 0, overdue: false })
+  })
+
+  it('devuelve los días que faltan cuando aún no vence', () => {
+    expect(stageDue(stage({ dueOn: '2026-09-20' }), TODAY)).toEqual({ days: 8, overdue: false })
   })
 })
 

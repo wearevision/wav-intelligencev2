@@ -43,10 +43,28 @@ export function progress(stages: readonly StudyStage[]): { done: number; total: 
   return { done: stages.filter(isClosed).length, total: stages.length }
 }
 
+/**
+ * El estado de vencimiento de una etapa, o null cuando no corresponde mostrarlo.
+ *
+ * Devuelve null para etapas cerradas a propósito: una etapa cerrada no puede
+ * estar atrasada. Antes el color sabía esto —salía en gris— pero el texto se
+ * calculaba solo por diferencia de días, así que una etapa cerrada mostraba
+ * "Atrasada · 24 d" junto a "Cerrada", que se contradicen.
+ *
+ * Devuelve datos y no texto: el formato vive en el diccionario de copy.
+ */
+export function stageDue(
+  stage: StudyStage,
+  today: Date,
+): { days: number; overdue: boolean } | null {
+  if (isClosed(stage) || stage.dueOn === null) return null
+  const days = daysUntil(stage.dueOn, today)
+  return { days, overdue: days < 0 }
+}
+
 /** Una etapa abierta cuyo vencimiento ya pasó. Derivado, nunca almacenado (D8). */
 export function isOverdue(stage: StudyStage, today: Date): boolean {
-  if (isClosed(stage) || stage.dueOn === null) return false
-  return stage.dueOn < toIsoDate(today)
+  return stageDue(stage, today)?.overdue ?? false
 }
 
 export function overdueStages(study: Study, today: Date): StudyStage[] {

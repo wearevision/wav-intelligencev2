@@ -13,6 +13,7 @@ export {
   isOverdue,
   overdueStages,
   progress,
+  stageDue,
 } from './model'
 export type { Blocker } from './model'
 export { studiesCopy, dueLabel } from './copy'
