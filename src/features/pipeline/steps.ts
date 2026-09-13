@@ -39,7 +39,7 @@ async function writeArtifact(
   return { kind, storageKey: key, bytes: Buffer.byteLength(body) }
 }
 
-interface InventoryEntry {
+export interface InventoryEntry {
   id: string
   kind: string
   storageKey: string
@@ -146,7 +146,7 @@ interface PlanSource {
  * fuente para que un silencio de cuatro minutos no se lea como parte de la
  * conversación.
  */
-function buildSources(entries: readonly InventoryEntry[]): PlanSource[] {
+export function buildSources(entries: readonly InventoryEntry[]): PlanSource[] {
   const grouped = new Map<string, InventoryEntry[]>()
   const singles: InventoryEntry[] = []
 
@@ -183,7 +183,12 @@ function buildSources(entries: readonly InventoryEntry[]): PlanSource[] {
     const { offsets, gaps, assumedContiguous } = computeOffsets(
       list.map((e) => ({
         filename: e.originalFilename,
-        modifiedAt: e.recordedAt ? new Date(e.recordedAt) : null,
+        // `recorded_at` es cuándo EMPEZÓ la parte, no cuándo se escribió el
+        // archivo. Leerlo como `modifiedAt` hace que `startOf` le reste la
+        // duración, y el desfase queda corrido por la diferencia de duración
+        // entre partes: con la última parte más corta —que es lo normal— el
+        // error es de minutos y desplaza toda su transcripción.
+        startsAt: e.recordedAt ? new Date(e.recordedAt) : null,
         durationSeconds: e.durationSeconds,
       })),
     )
