@@ -20,6 +20,20 @@ npm run dev
 
 → http://localhost:3000
 
+### Una sola vez por bucket de R2
+
+El navegador sube el material directo a R2 con una URL prefirmada, así que el
+bucket tiene que aceptar ese origen. Sin esto la subida falla en el navegador
+aunque la firma sea correcta:
+
+```bash
+node scripts/r2-cors.mjs           # ver la política actual
+node scripts/r2-cors.mjs --apply   # escribirla
+```
+
+Por defecto habilita `localhost:3000` y `:3001`. Para otros orígenes:
+`R2_CORS_ORIGINS=https://…  node scripts/r2-cors.mjs --apply`.
+
 ## Documentación
 
 - [Arquitectura](docs/ARCHITECTURE.md) — decisiones de diseño y su justificación
