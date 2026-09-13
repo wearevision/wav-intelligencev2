@@ -3,7 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { env } from '@/env'
 
-const PUBLIC_PREFIXES = ['/login', '/auth']
+// /api queda fuera del guardián de sesión: la app de escritorio se autentica
+// con un Bearer y no con cookies, y un redirect a /login como respuesta a una
+// petición de API es una página HTML donde se esperaba JSON.
+const PUBLIC_PREFIXES = ['/login', '/auth', '/api']
 
 // /preview renderiza la interfaz con datos de prueba y no existe en producción,
 // así que en desarrollo tampoco necesita sesión.
