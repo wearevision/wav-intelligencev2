@@ -101,14 +101,24 @@ function describeRecording(
   return `${partes} · continuas`
 }
 
+/** Quién lleva cada micrófono, para que elegir un número signifique algo. */
+export interface MicOwner {
+  sessionId: string
+  name: string
+  micNumber: number | null
+  role: string
+}
+
 export function MediaSection({
   studyId,
   sessions,
   files,
+  participants = [],
 }: {
   studyId: string
   sessions: readonly SessionRef[]
   files: readonly MediaFile[]
+  participants?: readonly MicOwner[]
 }) {
   const router = useRouter()
   const [queue, setQueue] = useState<QueueItem[]>([])
@@ -122,6 +132,20 @@ export function MediaSection({
     [sessions],
   )
   const coverage = useMemo(() => coverageByBlock(files), [files])
+
+  // Elegir "Mic 3" no dice nada; "Mic 3 · Paula Contreras" sí. Y un número sin
+  // dueño se marca, porque casi siempre significa que falta alguien en el
+  // listado y no que el micrófono estaba apagado.
+  const ownersByBlock = useMemo(() => {
+    const map = new Map<string, Map<number, string>>()
+    for (const person of participants) {
+      if (person.micNumber === null) continue
+      const forBlock = map.get(person.sessionId) ?? new Map<number, string>()
+      forBlock.set(person.micNumber, person.name)
+      map.set(person.sessionId, forBlock)
+    }
+    return map
+  }, [participants])
   const byBlock = useMemo(() => {
     const map = new Map<string, MediaFile[]>()
     for (const f of files) {
@@ -387,6 +411,7 @@ export function MediaSection({
                     key={entry.items[0]!.key}
                     item={entry.items[0]!}
                     sessions={sessions}
+                    owners={ownersByBlock.get(entry.items[0]!.sessionId ?? '')}
                     onChange={(changes) => patch(entry.items[0]!.key, changes)}
                     onRemove={() =>
                       setQueue((c) => c.filter((i) => i.key !== entry.items[0]!.key))
@@ -398,6 +423,7 @@ export function MediaSection({
                     recordingKey={entry.recordingKey}
                     items={entry.items}
                     sessions={sessions}
+                    owners={ownersByBlock.get(entry.items[0]!.sessionId ?? '')}
                     onChange={(changes) => patchRecording(entry.recordingKey!, changes)}
                     onRemove={() =>
                       setQueue((c) => c.filter((i) => i.recordingKey !== entry.recordingKey))
@@ -418,6 +444,7 @@ export function MediaSection({
                     key={entry.items[0]!.key}
                     item={entry.items[0]!}
                     sessions={sessions}
+                    owners={ownersByBlock.get(entry.items[0]!.sessionId ?? '')}
                     onChange={(changes) => patch(entry.items[0]!.key, changes)}
                     onRemove={() =>
                       setQueue((c) => c.filter((i) => i.key !== entry.items[0]!.key))
@@ -429,6 +456,7 @@ export function MediaSection({
                     recordingKey={entry.recordingKey}
                     items={entry.items}
                     sessions={sessions}
+                    owners={ownersByBlock.get(entry.items[0]!.sessionId ?? '')}
                     onChange={(changes) => patchRecording(entry.recordingKey!, changes)}
                     onRemove={() =>
                       setQueue((c) => c.filter((i) => i.recordingKey !== entry.recordingKey))
@@ -534,12 +562,14 @@ function RecordingRow({
   recordingKey,
   items,
   sessions,
+  owners,
   onChange,
   onRemove,
 }: {
   recordingKey: string
   items: readonly QueueItem[]
   sessions: readonly SessionRef[]
+  owners: ReadonlyMap<number, string> | undefined
   onChange: (changes: Partial<QueueItem>) => void
   onRemove: () => void
 }) {
@@ -606,6 +636,15 @@ function RecordingRow({
           ))}
         </select>
 
+        {head.kind === 'audio_mic' && (
+          <MicSelect
+            value={head.micNumber}
+            disabled={locked}
+            owners={owners}
+            onChange={(micNumber) => onChange({ micNumber })}
+          />
+        )}
+
         {!head.manual && <span className="text-xs text-muted">{head.reason}</span>}
       </div>
 
@@ -646,40 +685,61 @@ function RecordingRow({
 function MicSelect({
   value,
   disabled,
+  owners,
   onChange,
 }: {
   value: number | null
   disabled: boolean
+  owners: ReadonlyMap<number, string> | undefined
   onChange: (mic: number | null) => void
 }) {
+  const owner = value !== null ? owners?.get(value) : undefined
+  // Los micrófonos del listado primero; después el resto, por si alguien grabó
+  // con uno que no está anotado.
+  const listed = owners ? [...owners.keys()].sort((a, b) => a - b) : []
+  const rest = Array.from({ length: 24 }, (_, i) => i + 1).filter((m) => !owners?.has(m))
+
   return (
-    <select
-      value={value ?? ''}
-      disabled={disabled}
-      aria-label={mediaCopy.micLabel}
-      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-      className={`rounded-md border bg-canvas px-2 py-1 text-xs tabular-nums outline-none focus:border-accent ${
-        value === null ? 'border-warn text-warn' : 'border-border'
-      }`}
-    >
-      <option value="">{mediaCopy.noMic}</option>
-      {Array.from({ length: 24 }, (_, i) => i + 1).map((mic) => (
-        <option key={mic} value={mic}>
-          {mediaCopy.micLabel} {mic}
-        </option>
-      ))}
-    </select>
+    <span className="flex items-center gap-2">
+      <select
+        value={value ?? ''}
+        disabled={disabled}
+        aria-label={mediaCopy.micLabel}
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+        className={`rounded-md border bg-canvas px-2 py-1 text-xs outline-none focus:border-accent ${
+          value === null ? 'border-warn text-warn' : 'border-border'
+        }`}
+      >
+        <option value="">{mediaCopy.noMic}</option>
+        {listed.map((mic) => (
+          <option key={mic} value={mic}>
+            {mediaCopy.micLabel} {mic} · {owners!.get(mic)}
+          </option>
+        ))}
+        {rest.map((mic) => (
+          <option key={mic} value={mic}>
+            {mediaCopy.micLabel} {mic}
+          </option>
+        ))}
+      </select>
+
+      {value !== null && owner === undefined && (
+        <span className="text-xs text-warn">{mediaCopy.micWithoutOwner}</span>
+      )}
+    </span>
   )
 }
 
 function QueueRow({
   item,
   sessions,
+  owners,
   onChange,
   onRemove,
 }: {
   item: QueueItem
   sessions: readonly SessionRef[]
+  owners: ReadonlyMap<number, string> | undefined
   onChange: (changes: Partial<QueueItem>) => void
   onRemove: () => void
 }) {
@@ -745,6 +805,7 @@ function QueueRow({
           <MicSelect
             value={item.micNumber}
             disabled={locked}
+            owners={owners}
             onChange={(micNumber) => onChange({ micNumber })}
           />
         )}

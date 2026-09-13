@@ -251,3 +251,52 @@ describe('MediaSection · micrófono y duplicados', () => {
     expect(screen.queryByText('Ya subido')).not.toBeInTheDocument()
   })
 })
+
+describe('MediaSection · micrófono en una grabación en partes', () => {
+  const DUENIOS = [
+    { sessionId: 's-d1b1', name: 'Paula Contreras', micNumber: 3, role: 'participant' },
+    { sessionId: 's-d1b1', name: 'Carolina Reyes', micNumber: 1, role: 'moderator' },
+  ]
+
+  async function soltarGrabacion() {
+    durations.set('2026-06-02-21-18-09.wav', 1800)
+    durations.set('2026-06-02-21-48-09.wav', 1800)
+    await drop(['2026-06-02-21-18-09.wav'], Date.parse('2026-06-02T21:18:09.000Z'))
+    await drop(['2026-06-02-21-48-09.wav'], Date.parse('2026-06-02T21:48:09.000Z'))
+  }
+
+  it('la grabación entera tiene un solo selector de micrófono', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    await soltarGrabacion()
+
+    // Con nombres de fecha el tipo por defecto es audio de sala; se corrige.
+    fireEvent.change(screen.getByLabelText('Material'), { target: { value: 'audio_mic' } })
+
+    expect(screen.getAllByLabelText('Mic')).toHaveLength(1)
+  })
+
+  it('el selector nombra a quién lleva cada micrófono', async () => {
+    render(
+      <MediaSection studyId="e1" sessions={SESSIONS} files={[]} participants={DUENIOS} />,
+    )
+    await soltarGrabacion()
+    fireEvent.change(screen.getByLabelText('Elegir bloque'), { target: { value: 's-d1b1' } })
+    fireEvent.change(screen.getByLabelText('Material'), { target: { value: 'audio_mic' } })
+
+    const mic = screen.getByLabelText('Mic')
+    expect(within(mic).getByText('Mic 3 · Paula Contreras')).toBeInTheDocument()
+    expect(within(mic).getByText('Mic 1 · Carolina Reyes')).toBeInTheDocument()
+  })
+
+  it('avisa cuando el micrófono elegido no lo lleva nadie del listado', async () => {
+    render(
+      <MediaSection studyId="e1" sessions={SESSIONS} files={[]} participants={DUENIOS} />,
+    )
+    await soltarGrabacion()
+    fireEvent.change(screen.getByLabelText('Elegir bloque'), { target: { value: 's-d1b1' } })
+    fireEvent.change(screen.getByLabelText('Material'), { target: { value: 'audio_mic' } })
+    fireEvent.change(screen.getByLabelText('Mic'), { target: { value: '7' } })
+
+    expect(screen.getByText('Nadie lleva ese micrófono en este bloque')).toBeInTheDocument()
+  })
+})

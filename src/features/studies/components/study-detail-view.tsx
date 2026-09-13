@@ -86,13 +86,18 @@ export function StudyDetailView({
 
       <SessionsSection studyId={study.id} sessions={sessions} />
 
-      {/* Sin bloques no hay dónde poner el material: la grilla es el destino. */}
-      {sessions.length > 0 && (
-        <MediaSection studyId={study.id} sessions={sessions} files={media} />
-      )}
-
       {sessions.length > 0 && (
         <ParticipantsSection studyId={study.id} blocks={blocks} participants={participants} />
+      )}
+
+      {/* Sin bloques no hay dónde poner el material: la grilla es el destino. */}
+      {sessions.length > 0 && (
+        <MediaSection
+          studyId={study.id}
+          sessions={sessions}
+          files={media}
+          participants={participants}
+        />
       )}
 
       {sessions.length > 0 && (

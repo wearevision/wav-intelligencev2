@@ -9,6 +9,7 @@ export const mediaCopy = {
   partsSuffix: 'partes',
   micLabel: 'Mic',
   noMic: 'Sin asignar',
+  micWithoutOwner: 'Nadie lleva ese micrófono en este bloque',
   duplicate: 'Ya subido',
   duplicateAll: 'Esta grabación ya está subida entera. No se vuelve a subir.',
   browse: 'o elegir del disco',
