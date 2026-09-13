@@ -71,6 +71,11 @@ npm run format
 
 Antes de cada commit: `npm run typecheck && npm test`.
 
+El smoke necesita el dev server corriendo y un Chromium de Playwright
+(`npx playwright install chromium` la primera vez). Cubre el guard de sesión, el
+login y las vistas con datos de prueba; el camino con datos vivos —crear
+estudio, adjuntar, avanzar etapa— se prueba a mano contra Supabase.
+
 ## Convenciones
 
 - Commits convencionales: `feat:` / `fix:` / `refactor:` / `docs:` / `chore:`
