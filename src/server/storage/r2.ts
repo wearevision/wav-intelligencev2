@@ -1,0 +1,106 @@
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+
+/**
+ * Adaptador de R2 detrás de un puerto único (D15).
+ *
+ * La configuración se valida al usarse y no al importarse, a diferencia del
+ * resto del entorno (D10): la app tiene que poder compilar y correr sus fases
+ * anteriores sin credenciales de R2. El error nombra las variables que faltan.
+ */
+export interface StoragePort {
+  presignPut(key: string, contentType?: string, expiresInSeconds?: number): Promise<string>
+  presignGet(key: string, expiresInSeconds?: number): Promise<string>
+  exists(key: string): Promise<boolean>
+  remove(key: string): Promise<void>
+}
+
+interface R2Config {
+  accountId: string
+  accessKeyId: string
+  secretAccessKey: string
+  bucket: string
+}
+
+function readConfig(): R2Config {
+  const raw = {
+    R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
+    R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+    R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
+    R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+  }
+
+  const missing = Object.entries(raw)
+    .filter(([, v]) => !v)
+    .map(([k]) => k)
+
+  if (missing.length > 0) {
+    throw new Error(`Falta configurar R2. Variables ausentes: ${missing.join(', ')}`)
+  }
+
+  return {
+    accountId: raw.R2_ACCOUNT_ID as string,
+    accessKeyId: raw.R2_ACCESS_KEY_ID as string,
+    secretAccessKey: raw.R2_SECRET_ACCESS_KEY as string,
+    bucket: raw.R2_BUCKET_NAME as string,
+  }
+}
+
+let cached: { client: S3Client; bucket: string } | null = null
+
+function connect(): { client: S3Client; bucket: string } {
+  if (cached) return cached
+  const config = readConfig()
+
+  cached = {
+    bucket: config.bucket,
+    client: new S3Client({
+      region: 'auto',
+      endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    }),
+  }
+  return cached
+}
+
+export const storage: StoragePort = {
+  async presignPut(key, contentType, expiresInSeconds = 3600) {
+    const { client, bucket } = connect()
+    return getSignedUrl(
+      client,
+      new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
+      { expiresIn: expiresInSeconds },
+    )
+  },
+
+  async presignGet(key, expiresInSeconds = 300) {
+    const { client, bucket } = connect()
+    return getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: key }), {
+      expiresIn: expiresInSeconds,
+    })
+  },
+
+  async exists(key) {
+    const { client, bucket } = connect()
+    try {
+      await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+      return true
+    } catch {
+      return false
+    }
+  },
+
+  async remove(key) {
+    const { client, bucket } = connect()
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+  },
+}

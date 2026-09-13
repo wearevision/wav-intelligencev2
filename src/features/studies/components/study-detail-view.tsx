@@ -1,5 +1,7 @@
 import Link from 'next/link'
 
+import type { MediaFile } from '@/features/media'
+import { MediaSection } from '@/features/media/components/media-section'
 import { SessionsSection } from '@/features/sessions/components/sessions-section'
 import type { StudySession } from '@/features/sessions'
 
@@ -16,10 +18,12 @@ import { TaskToggle } from './task-toggle'
 export function StudyDetailView({
   study,
   sessions,
+  media,
   today,
 }: {
   study: Study
   sessions: readonly StudySession[]
+  media: readonly MediaFile[]
   today: Date
 }) {
   const current = currentStage(study.stages)
@@ -52,6 +56,11 @@ export function StudyDetailView({
       )}
 
       <SessionsSection studyId={study.id} sessions={sessions} />
+
+      {/* Sin bloques no hay dónde poner el material: la grilla es el destino. */}
+      {sessions.length > 0 && (
+        <MediaSection studyId={study.id} sessions={sessions} files={media} />
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted">{studiesCopy.stages}</h2>

@@ -1,3 +1,4 @@
+import type { MediaFile } from '@/features/media'
 import type { StudySession } from '@/features/sessions'
 import type { Study, StudyStage } from '@/features/studies'
 
@@ -132,4 +133,50 @@ export function previewSessions(today: Date): StudySession[] {
     }
   }
   return sessions
+}
+
+/** Material a medio subir: un bloque completo, otro con video pero sin audio. */
+export function previewMedia(): MediaFile[] {
+  const at = '2026-11-10T15:00:00.000Z'
+  return [
+    {
+      id: 'm-1',
+      sessionId: 's-d1b1',
+      kind: 'audio_room',
+      storageKey: 'studies/a/d1b1/sala-0001.wav',
+      originalFilename: 'd1b1-sala.wav',
+      bytes: 812_000_000,
+      durationSeconds: 7200,
+      micNumber: null,
+      sourcePath: null,
+      sourceHost: null,
+      createdAt: at,
+    },
+    {
+      id: 'm-2',
+      sessionId: 's-d1b1',
+      kind: 'audio_mic',
+      storageKey: 'studies/a/d1b1/mic3-0002.wav',
+      originalFilename: 'd1b1-mic3.wav',
+      bytes: 690_000_000,
+      durationSeconds: 7200,
+      micNumber: 3,
+      sourcePath: null,
+      sourceHost: null,
+      createdAt: at,
+    },
+    {
+      id: 'm-3',
+      sessionId: 's-d1b2',
+      kind: 'video_360',
+      storageKey: 'studies/a/d1b2/360-0003.m3u8',
+      originalFilename: 'd1b2-360.insv',
+      bytes: 1_400_000_000,
+      durationSeconds: 7200,
+      micNumber: null,
+      sourcePath: '/Volumes/WAV-01/mg-postventa/d1b2/VID_0012.insv',
+      sourceHost: 'Disco WAV-01',
+      createdAt: at,
+    },
+  ]
 }

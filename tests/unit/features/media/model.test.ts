@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  blocksMissingAudio,
   classifyKind,
+  coverageByBlock,
+  coverageOf,
+  formatBytes,
   matchFile,
   matchFiles,
   needsAttention,
@@ -179,5 +183,77 @@ describe('needsAttention', () => {
     )
     expect(matches).toHaveLength(3)
     expect(needsAttention(matches).map((m) => m.filename)).toEqual(['grabacion.wav', 'd9b9.wav'])
+  })
+})
+
+describe('coverageOf', () => {
+  it('separa video de audio y junta los micrófonos sin repetir', () => {
+    const coverage = coverageOf([
+      { sessionId: 's', kind: 'video_360', micNumber: null },
+      { sessionId: 's', kind: 'audio_room', micNumber: null },
+      { sessionId: 's', kind: 'audio_mic', micNumber: 3 },
+      { sessionId: 's', kind: 'audio_mic', micNumber: 1 },
+      { sessionId: 's', kind: 'audio_mic', micNumber: 3 },
+    ])
+
+    expect(coverage).toEqual({ hasVideo: true, hasAudio: true, micNumbers: [1, 3], count: 5 })
+  })
+
+  it('un bloque sin nada no tiene ni video ni audio', () => {
+    expect(coverageOf([])).toEqual({
+      hasVideo: false,
+      hasAudio: false,
+      micNumbers: [],
+      count: 0,
+    })
+  })
+
+  it('el video solo no cuenta como audio', () => {
+    const coverage = coverageOf([{ sessionId: 's', kind: 'video_dslr', micNumber: null }])
+    expect(coverage.hasVideo).toBe(true)
+    expect(coverage.hasAudio).toBe(false)
+  })
+})
+
+describe('coverageByBlock', () => {
+  it('agrupa por sesión y deja fuera las que no tienen archivos', () => {
+    const map = coverageByBlock([
+      { sessionId: 's-d1b1', kind: 'audio_room', micNumber: null },
+      { sessionId: 's-d1b2', kind: 'video_360', micNumber: null },
+    ])
+
+    expect(map.get('s-d1b1')?.hasAudio).toBe(true)
+    expect(map.get('s-d1b2')?.hasAudio).toBe(false)
+    expect(map.has('s-d2b1')).toBe(false)
+  })
+})
+
+describe('blocksMissingAudio', () => {
+  it('señala los bloques sin audio, aunque tengan video', () => {
+    const missing = blocksMissingAudio(BLOCKS, [
+      { sessionId: 's-d1b1', kind: 'audio_room', micNumber: null },
+      { sessionId: 's-d1b2', kind: 'video_360', micNumber: null },
+    ])
+
+    expect(missing.map((b) => b.code)).toEqual(['d1b2', 'd2b1'])
+  })
+
+  it('sin archivos, faltan todos', () => {
+    expect(blocksMissingAudio(BLOCKS, [])).toHaveLength(3)
+  })
+})
+
+describe('formatBytes', () => {
+  it('escala hasta la unidad legible', () => {
+    expect(formatBytes(0)).toBe('0 B')
+    expect(formatBytes(999)).toBe('999 B')
+    expect(formatBytes(1000)).toBe('1.0 kB')
+    expect(formatBytes(1_500_000)).toBe('1.5 MB')
+    expect(formatBytes(24_000_000)).toBe('24 MB')
+    expect(formatBytes(3_200_000_000)).toBe('3.2 GB')
+  })
+
+  it('sin dato devuelve una raya, no un cero que engañe', () => {
+    expect(formatBytes(null)).toBe('—')
   })
 })

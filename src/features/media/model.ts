@@ -149,3 +149,85 @@ export function matchFiles(files: readonly FileRef[], blocks: readonly BlockRef[
 export function needsAttention(matches: readonly FileMatch[]): FileMatch[] {
   return matches.filter((m) => m.sessionId === null)
 }
+
+// ---------------------------------------------------------------------------
+// Cobertura: qué tiene cada bloque de lo que debería tener.
+// ---------------------------------------------------------------------------
+
+/** Lo mínimo de un archivo ya subido que la cobertura necesita saber. */
+export interface StoredMedia {
+  sessionId: string
+  kind: MediaKind
+  micNumber: number | null
+}
+
+export interface BlockCoverage {
+  hasVideo: boolean
+  hasAudio: boolean
+  /** Ordenados y sin repetir, para poder leer los huecos de un vistazo. */
+  micNumbers: number[]
+  count: number
+}
+
+const VIDEO_KINDS = new Set<MediaKind>(['video_360', 'video_dslr'])
+
+export function coverageOf(files: readonly StoredMedia[]): BlockCoverage {
+  const mics = new Set<number>()
+  let hasVideo = false
+  let hasAudio = false
+
+  for (const f of files) {
+    if (VIDEO_KINDS.has(f.kind)) hasVideo = true
+    else hasAudio = true
+    if (f.kind === 'audio_mic' && f.micNumber !== null) mics.add(f.micNumber)
+  }
+
+  return {
+    hasVideo,
+    hasAudio,
+    micNumbers: [...mics].sort((a, b) => a - b),
+    count: files.length,
+  }
+}
+
+export function coverageByBlock(files: readonly StoredMedia[]): Map<string, BlockCoverage> {
+  const grouped = new Map<string, StoredMedia[]>()
+  for (const f of files) {
+    const list = grouped.get(f.sessionId)
+    if (list) list.push(f)
+    else grouped.set(f.sessionId, [f])
+  }
+
+  const result = new Map<string, BlockCoverage>()
+  for (const [sessionId, list] of grouped) result.set(sessionId, coverageOf(list))
+  return result
+}
+
+/**
+ * Los bloques que todavía no tienen audio.
+ *
+ * El audio es lo que decide si un bloque se puede analizar: el video ilustra,
+ * pero la transcripción sale del sonido. Un bloque sin audio es un bloque
+ * perdido, y por eso es lo único que se marca como faltante.
+ */
+export function blocksMissingAudio(
+  blocks: readonly BlockRef[],
+  files: readonly StoredMedia[],
+): BlockRef[] {
+  const coverage = coverageByBlock(files)
+  return blocks.filter((b) => !coverage.get(b.sessionId)?.hasAudio)
+}
+
+/** Tamaño legible. Base 1000 porque es la que usan los sistemas operativos. */
+export function formatBytes(bytes: number | null): string {
+  if (bytes === null || bytes < 0) return '—'
+  if (bytes < 1000) return `${bytes} B`
+  const units = ['kB', 'MB', 'GB', 'TB']
+  let value = bytes / 1000
+  let unit = 0
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000
+    unit++
+  }
+  return `${value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`
+}
