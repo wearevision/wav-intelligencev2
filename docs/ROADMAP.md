@@ -148,6 +148,30 @@ Acá recién entra el pipeline de medios, como etapa del proceso (D13).
 
 ---
 
+## Sin verificar contra datos vivos
+
+Todo lo construido hasta F3 se levantó desde un contenedor remoto cuya política
+de egreso bloquea `supabase.co`. La base de datos sí está verificada por SQL
+directo (21 casos entre RLS y el flujo del estudio) y la interfaz por un smoke
+en navegador (23 aserciones), pero **el pegamento entre la app y Supabase nunca
+se ejecutó**.
+
+Lo primero que conviene ejercitar a mano, en este orden:
+
+1. Registrarse — el primer usuario queda `admin`. Si Supabase pide confirmar el
+   correo y no hay SMTP, apagar *Confirm email* en Authentication → Sign In /
+   Providers → Email.
+2. Crear un estudio con fecha de terreno — deben aparecer diez etapas con sus
+   vencimientos calculados desde esa fecha.
+3. Marcar las tareas de Brief y adjuntar el documento — recién ahí la etapa cierra.
+4. Intentar cerrar una etapa con algo pendiente — la base debe rechazarlo
+   nombrando exactamente qué falta.
+5. Mover la fecha de terreno — las etapas abiertas se recalculan y las cerradas
+   conservan la suya.
+
+Cada uno de esos pasos recorre código que compila y está tipado, pero que nunca
+hizo una petición real.
+
 ## Reglas de ejecución
 
 - **TDD donde hay lógica.** Compuertas, alertas, instanciación de plantillas, RLS.
