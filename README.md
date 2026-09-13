@@ -20,6 +20,18 @@ npm run dev
 
 → http://localhost:3000
 
+### Cuando la app dice que falta una variable
+
+```bash
+npm run check:env
+```
+
+Muestra qué ve la app en `.env.local` sin imprimir los secretos, y detecta los
+enredos que no se ven leyendo el archivo: dos claves pegadas porque faltó un
+salto de línea, comillas de más, espacios alrededor del `=`. Si sale todo en
+orden y la app sigue quejándose, el servidor está corriendo con el entorno de
+antes — Next lo lee al arrancar.
+
 ### Una sola vez por bucket de R2
 
 El navegador sube el material directo a R2 con una URL prefirmada, así que el
