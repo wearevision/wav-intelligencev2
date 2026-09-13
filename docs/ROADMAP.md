@@ -95,6 +95,8 @@ La etapa que más duele, y la primera que se automatiza.
 
 ## F5 · Sesiones y logística
 
+Diseño detallado: [plans/2026-09-13-f5-f6.md](plans/2026-09-13-f5-f6.md)
+
 - Sesiones dentro del estudio: fecha, hora, sala, moderador
 - Participantes confirmados por sesión
 - Guía del moderador y objetivo por sesión
@@ -104,6 +106,9 @@ La etapa que más duele, y la primera que se automatiza.
 ---
 
 ## F6 · Captura y procesamiento
+
+Diseño detallado y partición en F6a/F6b/F6c:
+[plans/2026-09-13-f5-f6.md](plans/2026-09-13-f5-f6.md)
 
 Acá recién entra el pipeline de medios, como etapa del proceso (D13).
 
@@ -148,29 +153,20 @@ Acá recién entra el pipeline de medios, como etapa del proceso (D13).
 
 ---
 
-## Sin verificar contra datos vivos
+## Verificado contra datos vivos · 2026-09-13
 
-Todo lo construido hasta F3 se levantó desde un contenedor remoto cuya política
-de egreso bloquea `supabase.co`. La base de datos sí está verificada por SQL
-directo (21 casos entre RLS y el flujo del estudio) y la interfaz por un smoke
-en navegador (23 aserciones), pero **el pegamento entre la app y Supabase nunca
-se ejecutó**.
+F0 a F3 se construyeron desde un contenedor cuya política de egreso bloquea
+`supabase.co`, así que el pegamento entre la app y Supabase quedó sin ejecutar
+una sola petición real. **Eso ya se cerró.** Federico corrió los cinco pasos a
+mano en su máquina y pasaron todos:
 
-Lo primero que conviene ejercitar a mano, en este orden:
+1. Registro — el primer usuario queda `admin`
+2. Crear estudio con fecha de terreno — diez etapas con vencimientos calculados
+3. Adjuntar el brief y marcar tareas — el archivo sube y se ve con URL firmada
+4. Cerrar Brief — solo con todo cumplido; la compuerta bloquea y nombra qué falta
+5. Mover el terreno — las etapas abiertas se recalculan, las cerradas conservan su fecha
 
-1. Registrarse — el primer usuario queda `admin`. Si Supabase pide confirmar el
-   correo y no hay SMTP, apagar *Confirm email* en Authentication → Sign In /
-   Providers → Email.
-2. Crear un estudio con fecha de terreno — deben aparecer diez etapas con sus
-   vencimientos calculados desde esa fecha.
-3. Marcar las tareas de Brief y adjuntar el documento — recién ahí la etapa cierra.
-4. Intentar cerrar una etapa con algo pendiente — la base debe rechazarlo
-   nombrando exactamente qué falta.
-5. Mover la fecha de terreno — las etapas abiertas se recalculan y las cerradas
-   conservan la suya.
-
-Cada uno de esos pasos recorre código que compila y está tipado, pero que nunca
-hizo una petición real.
+Lo que sigue se construye sobre algo probado, no supuesto.
 
 ## Reglas de ejecución
 

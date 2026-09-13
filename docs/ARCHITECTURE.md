@@ -225,6 +225,24 @@ mantienen porque siguen siendo buenas:
 
 Runner: Trigger.dev, por jobs largos, reintentos y extensión Python para pyannote.
 
+## D16–D18 — Sesiones, emparejamiento de archivos y transcripción · `Propuesta`
+
+Tres decisiones que salen del diseño de F5 y F6. El razonamiento completo está
+en [plans/2026-09-13-f5-f6.md](plans/2026-09-13-f5-f6.md); acá el resumen para
+que el registro quede completo.
+
+- **D16 — La forma del estudio son las sesiones, no dos columnas.** Guardar
+  `days` y `blocks_per_day` duplicaría la verdad: una séptima sesión agregada a
+  mano las volvería mentira sin que nada lo detecte. El generador crea N×M como
+  comodidad de entrada; la estructura se deriva contando sesiones.
+- **D17 — El archivo se empareja con su bloque por el código del nombre.** La
+  app genera la lista de archivos esperados y empareja contra ella. Lo que no
+  calza va a una bandeja de "sin asignar", nunca se descarta: un nombre mal
+  puesto es un error de rotulado, y el material es irrepetible.
+- **D18 — La transcripción se ramifica según el audio disponible.** Varía entre
+  estudios —mezcla de sala, pistas por micrófono, o ambas—, así que ningún paso
+  del pipeline asume una forma fija.
+
 ---
 
 ## Pendiente de decidir
