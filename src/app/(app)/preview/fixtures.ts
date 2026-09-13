@@ -1,3 +1,4 @@
+import type { StudySession } from '@/features/sessions'
 import type { Study, StudyStage } from '@/features/studies'
 
 // Datos de prueba para iterar la interfaz sin base de datos. Solo desarrollo.
@@ -105,4 +106,30 @@ export function previewStudies(today: Date): Study[] {
     buildFixture('b', 'MG Motor · Post-venta', 'MG Motor', 48, 0, today),
     buildFixture('c', 'Piloto interno', null, null, 0, today),
   ]
+}
+
+/** 3 días × 2 bloques, con la logística a medio llenar para ver ambos estados. */
+export function previewSessions(today: Date): StudySession[] {
+  const sessions: StudySession[] = []
+  for (let day = 1; day <= 3; day++) {
+    for (let block = 1; block <= 2; block++) {
+      const complete = day === 1
+      const at = new Date(today)
+      at.setUTCDate(at.getUTCDate() + 20 + day)
+      at.setUTCHours(block === 1 ? 13 : 20, 0, 0, 0)
+
+      sessions.push({
+        id: `s-d${day}b${block}`,
+        dayNumber: day,
+        blockNumber: block,
+        code: `d${day}b${block}`,
+        name: `Día ${day} · Bloque ${block}`,
+        scheduledAt: complete ? at.toISOString() : null,
+        venue: complete ? 'Sala Providencia' : null,
+        moderatorName: complete ? 'Carolina Reyes' : null,
+        participantCount: complete ? 8 : 0,
+      })
+    }
+  }
+  return sessions
 }

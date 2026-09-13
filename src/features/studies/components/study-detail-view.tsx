@@ -1,5 +1,8 @@
 import Link from 'next/link'
 
+import { SessionsSection } from '@/features/sessions/components/sessions-section'
+import type { StudySession } from '@/features/sessions'
+
 import { blockersFor, currentStage, progress, stageDue } from '../model'
 import { dueLabel, studiesCopy } from '../copy'
 import type { Study, StudyStage } from '../types'
@@ -10,7 +13,15 @@ import { StageFileRow } from './stage-file-row'
 import { TaskToggle } from './task-toggle'
 
 /** Presentación pura: recibe el estudio ya cargado y no consulta nada. */
-export function StudyDetailView({ study, today }: { study: Study; today: Date }) {
+export function StudyDetailView({
+  study,
+  sessions,
+  today,
+}: {
+  study: Study
+  sessions: readonly StudySession[]
+  today: Date
+}) {
   const current = currentStage(study.stages)
   const { done, total } = progress(study.stages)
 
@@ -39,6 +50,8 @@ export function StudyDetailView({ study, today }: { study: Study; today: Date })
       ) : (
         <p className="text-sm text-muted">{studiesCopy.finished}</p>
       )}
+
+      <SessionsSection studyId={study.id} sessions={sessions} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted">{studiesCopy.stages}</h2>

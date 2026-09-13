@@ -1,5 +1,9 @@
 // Generado desde el schema de Supabase. No editar a mano.
 // Regenerar: npx supabase gen types typescript --project-id lrnaiwilairvvnqlyxdq
+//
+// Nota: moderator_name (sessions) y mic_number (participants) se agregaron a
+// mano, porque la sesión que aplicó esa migración no podía correr el CLI.
+// Conviene regenerar con el comando de arriba para descartar cualquier deriva.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
@@ -22,6 +26,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          mic_number: number | null
           name: string
           seat_number: number | null
           session_id: string
@@ -29,6 +34,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          mic_number?: number | null
           name: string
           seat_number?: number | null
           session_id: string
@@ -36,6 +42,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          mic_number?: number | null
           name?: string
           seat_number?: number | null
           session_id?: string
@@ -81,6 +88,7 @@ export type Database = {
           day_number: number | null
           id: string
           moderator_guide: string | null
+          moderator_name: string | null
           name: string
           objective: string | null
           scheduled_at: string | null
@@ -96,6 +104,7 @@ export type Database = {
           day_number?: number | null
           id?: string
           moderator_guide?: string | null
+          moderator_name?: string | null
           name: string
           objective?: string | null
           scheduled_at?: string | null
@@ -111,6 +120,7 @@ export type Database = {
           day_number?: number | null
           id?: string
           moderator_guide?: string | null
+          moderator_name?: string | null
           name?: string
           objective?: string | null
           scheduled_at?: string | null

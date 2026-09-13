@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 
 import { StudyDetailView } from '@/features/studies/components/study-detail-view'
 
-import { previewStudies } from '../fixtures'
+import { previewSessions, previewStudies } from '../fixtures'
 
 export default function PreviewStudyPage() {
   if (process.env.NODE_ENV === 'production') notFound()
@@ -10,5 +10,5 @@ export default function PreviewStudyPage() {
   const today = new Date()
   const [study] = previewStudies(today)
 
-  return <StudyDetailView study={study} today={today} />
+  return <StudyDetailView study={study} sessions={previewSessions(today)} today={today} />
 }

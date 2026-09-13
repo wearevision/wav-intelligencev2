@@ -4,7 +4,8 @@ Cada fase cierra con algo **demostrable en pantalla**, no con "el módulo X est�
 El orden sigue el valor para quien coordina: primero saber en qué estado está todo,
 después automatizar los tramos.
 
-Estado: `F0` · `F1` · `F2` cerradas · `F3 · Checklists, responsables y compuertas` es lo siguiente.
+Estado: `F0` · `F1` · `F2` · `F3` · `F5` cerradas · `F6a · Subida y grilla` es lo siguiente.
+`F4 · Convocatoria` queda pendiente y no bloquea a F6.
 
 Requisitos confirmados: [SPEC.md](SPEC.md). Despliegue diferido — la app corre local
 hasta que valga la pena publicarla.
@@ -97,9 +98,13 @@ La etapa que más duele, y la primera que se automatiza.
 
 Diseño detallado: [plans/2026-09-13-f5-f6.md](plans/2026-09-13-f5-f6.md)
 
-- Sesiones dentro del estudio: fecha, hora, sala, moderador
-- Participantes confirmados por sesión
-- Guía del moderador y objetivo por sesión
+- [x] Generar la agenda desde la forma del estudio: N días × M bloques, con
+      vista previa de los códigos antes de confirmar
+- [x] Grilla de días × bloques con fecha, sala, moderador y participantes,
+      señalando qué falta en cada celda
+- [x] `mic_number` por participante, único dentro de una sesión
+- [ ] Participantes confirmados por sesión (llega con la convocatoria, F4)
+- [ ] Guía del moderador y objetivo por sesión
 
 **Entregable:** la agenda completa de un estudio, lista para ejecutar.
 
