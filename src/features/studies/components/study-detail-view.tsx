@@ -5,6 +5,8 @@ import { dueLabel, studiesCopy } from '../copy'
 import type { Study, StudyStage } from '../types'
 
 import { AdvanceButton } from './advance-button'
+import { FieldworkEditor } from './fieldwork-editor'
+import { StageFileRow } from './stage-file-row'
 import { TaskToggle } from './task-toggle'
 
 /** Presentación pura: recibe el estudio ya cargado y no consulta nada. */
@@ -19,13 +21,13 @@ export function StudyDetailView({ study, today }: { study: Study; today: Date })
           ← {studiesCopy.backToList}
         </Link>
         <h1 className="mt-3 text-2xl font-medium tracking-tight">{study.name}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {study.clientName ?? ''}
-          {study.clientName ? ' · ' : ''}
-          {study.fieldworkStart ?? studiesCopy.noFieldwork}
-          {' · '}
-          {studiesCopy.progress} {done}/{total}
-        </p>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm text-muted">
+          {study.clientName ? <span>{study.clientName} ·</span> : null}
+          <FieldworkEditor studyId={study.id} value={study.fieldworkStart} />
+          <span>
+            · {studiesCopy.progress} {done}/{total}
+          </span>
+        </div>
       </div>
 
       {current ? (
@@ -92,14 +94,9 @@ function StageDetail({
       ) : null}
 
       {stage.files.length > 0 ? (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex flex-col">
           {stage.files.map((file) => (
-            <li key={file.id} className="flex items-baseline gap-2 text-sm">
-              <span className={file.storageKey ? 'text-muted line-through' : ''}>{file.label}</span>
-              <span className="text-xs text-muted">
-                {file.storageKey ? studiesCopy.fileAttached : studiesCopy.fileMissing}
-              </span>
-            </li>
+            <StageFileRow key={file.id} file={file} stageId={stage.id} studyId={studyId} />
           ))}
         </ul>
       ) : null}

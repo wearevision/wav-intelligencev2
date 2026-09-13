@@ -27,6 +27,15 @@ export const studiesCopy = {
   fileAttached: 'Adjunto',
   blocking: 'Bloqueante',
   required: 'Requerido',
+  attach: 'Adjuntar',
+  attaching: 'Subiendo…',
+  openFile: 'Ver',
+  removeFile: 'Quitar',
+  fieldworkEdit: 'Cambiar fecha de terreno',
+  fieldworkSave: 'Guardar',
+  fieldworkCancel: 'Cancelar',
+  fieldworkRecalcHint:
+    'Mover el terreno recalcula las etapas que aún no cierran. Las cerradas conservan su fecha.',
   backToList: 'Volver a estudios',
   signOut: 'Cerrar sesión',
   statusLabel: {

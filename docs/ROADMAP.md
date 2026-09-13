@@ -64,11 +64,16 @@ tengas que buscarlo.
 
 ## F3 · Checklists, responsables y compuertas
 
-- Tareas por etapa con responsable y fecha de vencimiento
-- Marcar hecho, reasignar, reprogramar
-- Compuertas: una etapa no cierra con tareas bloqueantes ni archivos requeridos
-  pendientes (D7)
-- Adjuntos por etapa: brief del cliente, guía del moderador
+- [x] Tareas por etapa con fecha de vencimiento, marcables
+- [x] Compuertas: una etapa no cierra con tareas bloqueantes ni archivos
+  requeridos pendientes (D7), aplicadas por la base
+- [x] Adjuntos por etapa en Supabase Storage (D15): subir, ver con URL firmada, quitar
+- [x] Editar la fecha de terreno, con recálculo de la línea de tiempo
+- [ ] Agregar y quitar tareas de un estudio
+- [ ] Reprogramar una etapa suelta sin mover el terreno
+- [ ] Historial de qué se cerró y cuándo
+
+Responsables quedan fuera: hoy el usuario es uno solo y todas las tareas son suyas.
 
 **Entregable:** intentar cerrar una etapa con un pendiente bloqueante y que la app
 lo impida diciendo exactamente qué falta.

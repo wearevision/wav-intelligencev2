@@ -151,6 +151,22 @@ como desfase resuelto y no como valores sueltos que quedarían huérfanos.
 
 Las fechas ya cumplidas no se recalculan: lo que pasó, pasó.
 
+## D15 — Dos almacenamientos, por peso y no por capricho · `Propuesta`
+
+| Qué | Dónde | Por qué |
+|---|---|---|
+| Documentos de etapa (brief, guía, listado) | Supabase Storage | Archivos chicos, acceso puntual. Ya está ahí, sin credenciales ni proveedor nuevo, y las policies usan el mismo `private.is_admin()` que las tablas. |
+| Media de sesión (video 360, audio por bloque) | R2 | Decenas de GB por estudio. R2 no cobra salida, que es lo que domina el costo cuando se reproduce y se descarga. |
+
+Se evaluó usar R2 también para los documentos, por tener un solo almacenamiento.
+Se descartó: obligaría a configurar credenciales de R2 en F3 para mover archivos
+de 200 KB, cuando lo que justifica R2 —el costo de salida— recién aparece con el
+video en F6.
+
+El costo de la decisión es tener dos rutas de archivo. Se acota manteniendo un
+puerto de storage único en `server/`, para que la elección de proveedor no se
+desparrame por los features.
+
 ## D9 — Módulos por dominio · `Propuesta`
 
 ```
