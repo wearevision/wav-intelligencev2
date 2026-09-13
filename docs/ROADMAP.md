@@ -110,6 +110,9 @@ Diseño detallado: [plans/2026-09-13-f5-f6.md](plans/2026-09-13-f5-f6.md)
 Diseño detallado y partición en F6a/F6b/F6c:
 [plans/2026-09-13-f5-f6.md](plans/2026-09-13-f5-f6.md)
 
+El lado de escritorio, que transcodifica el video en local:
+[plans/2026-09-13-wav-ingest-v3.md](plans/2026-09-13-wav-ingest-v3.md)
+
 Acá recién entra el pipeline de medios, como etapa del proceso (D13).
 
 - Subida de media a R2 (multi-fuente: 360°, DSLR, audio de sala, micrófonos)
