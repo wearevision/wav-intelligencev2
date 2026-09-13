@@ -384,6 +384,27 @@ Dos cosas que el archivo real enseñó y quedaron en el modelo:
 
 ---
 
+## D25 — La app nunca tiene llaves de R2, y la clave se valida del lado del servidor · `Propuesta`
+
+WAV Ingest no lleva credenciales de Cloudflare. Pide URLs prefirmadas a la app y
+manda los bytes directo al bucket: las llaves viven en un solo lugar y una app de
+escritorio repartida entre equipos no es ese lugar. Si mañana hay que rotarlas, se
+rotan en el servidor y nadie recompila nada.
+
+De eso se desprende que el servidor arma la clave y la app no elige dónde se
+escribe. La subida por partes es la única grieta: iniciar, firmar cada parte y
+completar tienen que hablar del mismo objeto, así que la app devuelve la clave que
+se le dio. No hay forma de que el servidor la reconozca sin guardar cada clave
+emitida, pero sí de acotar el daño: se exige que caiga bajo el prefijo del estudio,
+sin segmentos vacíos ni saltos de directorio, y con la profundidad que el propio
+servidor construye. Una app comprometida no puede escribir fuera de su estudio.
+
+Por partes y no de una pieza sobre cierto tamaño porque una subida que se corta al
+90 % empieza de cero: con un archivo de cuatro gigas en terreno eso es media hora
+de vuelta a empezar.
+
+---
+
 ## Pendiente de decidir
 
 | Tema | Por qué aún no |

@@ -1,9 +1,13 @@
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
+  UploadPartCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
@@ -23,6 +27,30 @@ export interface StoragePort {
   put(key: string, body: string | Uint8Array, contentType?: string): Promise<void>
   /** Lectura desde el servidor. Igual: chicos. El media pesado no pasa por acá. */
   getText(key: string): Promise<string>
+
+  /**
+   * Subida por partes, para lo que no cabe en un PUT.
+   *
+   * Un PUT prefirmado admite hasta 5 GiB, pero el tamaño no es el único
+   * motivo: una subida de una sola pieza que se corta al 90 % empieza de cero,
+   * y en terreno eso puede ser media hora de vuelta a empezar. Por partes se
+   * reanuda desde la última que llegó.
+   */
+  createMultipart(key: string, contentType?: string): Promise<string>
+  presignPart(
+    key: string,
+    uploadId: string,
+    partNumber: number,
+    expiresInSeconds?: number,
+  ): Promise<string>
+  completeMultipart(key: string, uploadId: string, parts: readonly UploadedPart[]): Promise<void>
+  abortMultipart(key: string, uploadId: string): Promise<void>
+}
+
+export interface UploadedPart {
+  partNumber: number
+  /** El ETag que devolvió R2 al recibir la parte. */
+  etag: string
 }
 
 interface R2Config {
@@ -125,5 +153,48 @@ export const storage: StoragePort = {
     const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
     if (!result.Body) throw new Error(`El objeto ${key} llegó vacío`)
     return result.Body.transformToString()
+  },
+
+  async createMultipart(key, contentType) {
+    const { client, bucket } = connect()
+    const result = await client.send(
+      new CreateMultipartUploadCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
+    )
+    if (!result.UploadId) throw new Error(`R2 no devolvió un uploadId para ${key}`)
+    return result.UploadId
+  },
+
+  async presignPart(key, uploadId, partNumber, expiresInSeconds = 3600) {
+    const { client, bucket } = connect()
+    return getSignedUrl(
+      client,
+      new UploadPartCommand({ Bucket: bucket, Key: key, UploadId: uploadId, PartNumber: partNumber }),
+      { expiresIn: expiresInSeconds },
+    )
+  },
+
+  async completeMultipart(key, uploadId, parts) {
+    const { client, bucket } = connect()
+    await client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        MultipartUpload: {
+          // R2 exige las partes en orden ascendente; mandarlas desordenadas
+          // ensambla el archivo mal o falla, según el caso.
+          Parts: [...parts]
+            .sort((a, b) => a.partNumber - b.partNumber)
+            .map((part) => ({ PartNumber: part.partNumber, ETag: part.etag })),
+        },
+      }),
+    )
+  },
+
+  async abortMultipart(key, uploadId) {
+    const { client, bucket } = connect()
+    await client.send(
+      new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
+    )
   },
 }

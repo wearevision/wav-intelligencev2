@@ -90,3 +90,35 @@ export function hlsKeys(
     })),
   }
 }
+
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * ¿Es una clave que este servidor pudo haber emitido para este estudio?
+ *
+ * La subida por partes es la única vía en la que el cliente devuelve la clave
+ * que le dimos, porque las tres llamadas —iniciar, firmar cada parte,
+ * completar— tienen que hablar del mismo objeto. Eso rompería la regla de que
+ * la app no elige dónde se escribe, así que la clave se valida antes de
+ * firmar: bajo el prefijo del estudio, sin saltos de directorio, y con la
+ * forma que construyen `mediaKey` y `hlsKeys`.
+ *
+ * No prueba que la clave sea exactamente la que emitimos —para eso habría que
+ * guardarlas—, pero acota el daño de una app comprometida a su propio estudio.
+ */
+export function isStudyScopedKey(key: string, studyId: string): boolean {
+  if (!UUID.test(studyId)) return false
+
+  const prefix = `studies/${studyId}/`
+  if (!key.startsWith(prefix)) return false
+
+  const rest = key.slice(prefix.length)
+  // Un segmento vacío, un punto o dos puntos convierten la clave en una
+  // referencia a otro lugar del bucket para cualquier consumidor que la mapee
+  // a un sistema de archivos.
+  const segments = rest.split('/')
+  if (segments.length < 2 || segments.length > 4) return false
+
+  return segments.every((segment) => segment !== '' && segment !== '.' && segment !== '..')
+}
