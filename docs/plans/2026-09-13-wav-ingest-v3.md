@@ -104,12 +104,40 @@ integración local (D17).
 
 ---
 
+## Corrección · lo que la app ya hace
+
+Este documento se escribió sin poder leer el repo, y dos cosas quedaron mal.
+Verificadas en el código el 2026-09-13, sobre la versión **0.6.5**:
+
+**La transcripción local ya existe.** `src/hooks/useModels.ts` descarga modelos
+ggml de whisper.cpp —de `tiny` a `large-v3`— y el panel de Configuración los
+ofrece con detección de hardware. Se había propuesto posponerla; no hay nada que
+posponer.
+
+La consecuencia para el contrato: v2 debe aceptar el **artifact de
+transcripción** desde el día uno, igual que el HLS. Transcribir en la nube algo
+que la máquina ya transcribió gratis es pagar dos veces, y el modelo de
+artifacts (D17) ya sabe saltarse ese paso.
+
+**La URL del servidor es una constante de compilación.** Hoy:
+
+```ts
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+```
+
+Vite la incrusta al construir, así que apuntar la app a otro backend exige
+recompilar y publicar una release. Eso ya causó un fallo real: con v2 corriendo
+en el puerto 3000, la app quedó hablándole al backend equivocado y mostró "Load
+failed" sin ninguna forma de corregirlo desde la interfaz.
+
+**En la v3 la URL pasa a ser un ajuste en runtime**, guardado y editable desde
+Configuración, con la variable de entorno solo como valor inicial. Un cambio de
+entorno no puede costar un ciclo de compilación y release.
+
 ## Fuera de alcance de la v3
 
-- **Transcripción local.** Whisper corre bien en Apple Silicon y sería el
-  siguiente artifact natural, pero el audio es chico y ya sube; la nube lo
-  resuelve sin fricción. Se agrega cuando el camino del HLS esté probado, no antes.
-- Análisis, edición, o cualquier decisión sobre el proceso del estudio.
+Análisis, edición, o cualquier decisión sobre el proceso del estudio. Eso vive
+en la web.
 
 ---
 
