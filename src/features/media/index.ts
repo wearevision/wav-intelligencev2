@@ -7,12 +7,14 @@ export type {
   MatchReason,
   MediaKind,
   StoredMedia,
+  UploadedRef,
 } from './model'
 export {
   blocksMissingAudio,
   classifyKind,
   coverageByBlock,
   coverageOf,
+  findDuplicate,
   formatBytes,
   matchFile,
   matchFiles,

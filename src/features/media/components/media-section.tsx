@@ -7,6 +7,7 @@ import { kindLabels, mediaCopy, reasonLabels } from '../copy'
 import {
   classifyKind,
   coverageByBlock,
+  findDuplicate,
   formatBytes,
   matchFiles,
   parseMicNumber,
@@ -46,6 +47,8 @@ interface QueueItem {
   note: string | null
   /** true cuando el bloque lo eligió una persona y no el emparejador. */
   manual: boolean
+  /** El estudio ya tiene un archivo con este nombre y tamaño. */
+  duplicate: boolean
 }
 
 /**
@@ -248,6 +251,10 @@ export function MediaSection({
             durationSeconds: durations[i] ?? null,
             note: belongs?.note ?? null,
             manual: false,
+            // Ya está en el estudio: no se sube de nuevo, pero tampoco se
+            // descarta en silencio — quien lo soltó tiene que ver por qué no
+            // se subió.
+            duplicate: findDuplicate(file.name, file.size, files) !== null,
           }
         }),
       ]
@@ -266,7 +273,9 @@ export function MediaSection({
   }
 
   async function uploadAll() {
-    const ready = queue.filter((i) => i.status === 'ready' && i.sessionId && i.kind)
+    const ready = queue.filter(
+      (i) => i.status === 'ready' && i.sessionId && i.kind && !i.duplicate,
+    )
     if (ready.length === 0) return
 
     setBusy(true)
@@ -320,7 +329,9 @@ export function MediaSection({
 
   const assigned = groupQueue(queue.filter((i) => i.sessionId !== null))
   const tray = groupQueue(queue.filter((i) => i.sessionId === null))
-  const uploadable = queue.some((i) => i.status === 'ready' && i.sessionId && i.kind)
+  const uploadable = queue.some(
+    (i) => i.status === 'ready' && i.sessionId && i.kind && !i.duplicate,
+  )
 
   return (
     <section className="flex flex-col gap-3">
@@ -554,6 +565,10 @@ function RecordingRow({
         )}
       </div>
 
+      {items.every((i) => i.duplicate) && (
+        <p className="mt-1 text-xs text-warn">{mediaCopy.duplicateAll}</p>
+      )}
+
       {head.note && (
         <p className={`mt-1 text-xs ${head.note.includes('sin grabar') ? 'text-warn' : 'text-muted'}`}>
           {head.note}
@@ -603,6 +618,7 @@ function RecordingRow({
                 {item.file.name}
               </span>
               <span className="text-muted tabular-nums">{formatBytes(item.file.size)}</span>
+              {item.duplicate && <span className="text-warn">{mediaCopy.duplicate}</span>}
             </span>
             {item.status === 'uploading' && (
               <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-border">
@@ -617,6 +633,42 @@ function RecordingRow({
         ))}
       </ul>
     </div>
+  )
+}
+
+/**
+ * Qué micrófono es esta pista.
+ *
+ * Con nombres de fecha y hora el número no está en ninguna parte del archivo, y
+ * sin él la pista no se puede atribuir a nadie: el listado de participantes
+ * asigna personas a números, y del otro lado no habría número al que enganchar.
+ */
+function MicSelect({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: number | null
+  disabled: boolean
+  onChange: (mic: number | null) => void
+}) {
+  return (
+    <select
+      value={value ?? ''}
+      disabled={disabled}
+      aria-label={mediaCopy.micLabel}
+      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+      className={`rounded-md border bg-canvas px-2 py-1 text-xs tabular-nums outline-none focus:border-accent ${
+        value === null ? 'border-warn text-warn' : 'border-border'
+      }`}
+    >
+      <option value="">{mediaCopy.noMic}</option>
+      {Array.from({ length: 24 }, (_, i) => i + 1).map((mic) => (
+        <option key={mic} value={mic}>
+          {mediaCopy.micLabel} {mic}
+        </option>
+      ))}
+    </select>
   )
 }
 
@@ -640,6 +692,7 @@ function QueueRow({
           {item.file.name}
         </span>
         <span className="text-xs text-muted tabular-nums">{formatBytes(item.file.size)}</span>
+        {item.duplicate && <span className="text-xs text-warn">{mediaCopy.duplicate}</span>}
         {!locked && (
           <button
             type="button"
@@ -689,9 +742,11 @@ function QueueRow({
         </select>
 
         {item.kind === 'audio_mic' && (
-          <span className="text-xs text-muted">
-            {item.micNumber !== null ? `Mic ${item.micNumber}` : 'Sin número de mic'}
-          </span>
+          <MicSelect
+            value={item.micNumber}
+            disabled={locked}
+            onChange={(micNumber) => onChange({ micNumber })}
+          />
         )}
 
         {!item.manual && <span className="text-xs text-muted">{item.reason}</span>}

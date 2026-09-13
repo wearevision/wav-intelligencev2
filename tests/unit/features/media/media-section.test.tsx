@@ -192,3 +192,62 @@ describe('MediaSection · grabaciones en partes', () => {
     expect(screen.getAllByLabelText('Elegir bloque')).toHaveLength(2)
   })
 })
+
+describe('MediaSection · micrófono y duplicados', () => {
+  const YA_SUBIDO: MediaFile = {
+    id: 'm9',
+    sessionId: 's-d1b1',
+    kind: 'audio_mic',
+    storageKey: 'k',
+    originalFilename: '2026-06-02-21-18-09.wav',
+    bytes: 1,
+    durationSeconds: 1800,
+    micNumber: 4,
+    sourcePath: null,
+    sourceHost: null,
+    recordingKey: null,
+    partNumber: null,
+    recordedAt: null,
+    createdAt: '2026-06-02T21:18:09.000Z',
+  }
+
+  it('ofrece elegir el micrófono cuando la pista es de micrófono', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    await drop(['d1b1-mic3.wav'])
+
+    const mic = screen.getByLabelText('Mic') as HTMLSelectElement
+    expect(mic.value).toBe('3')
+  })
+
+  it('el selector de micrófono no aparece para el audio de sala', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    await drop(['d1b1-sala.wav'])
+
+    expect(screen.queryByLabelText('Mic')).not.toBeInTheDocument()
+  })
+
+  it('un archivo ya subido se marca y no se puede subir', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[YA_SUBIDO]} />)
+
+    const input = screen.getByLabelText('Soltar archivos aquí') as HTMLInputElement
+    const file = new File(['x'], '2026-06-02-21-18-09.wav', { type: 'audio/wav' })
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } })
+    })
+
+    expect(screen.getByText('Ya subido')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Subir' })).toBeDisabled()
+  })
+
+  it('el mismo nombre con otro tamaño no es el mismo archivo', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[YA_SUBIDO]} />)
+
+    const input = screen.getByLabelText('Soltar archivos aquí') as HTMLInputElement
+    const file = new File(['otro contenido'], '2026-06-02-21-18-09.wav', { type: 'audio/wav' })
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } })
+    })
+
+    expect(screen.queryByText('Ya subido')).not.toBeInTheDocument()
+  })
+})

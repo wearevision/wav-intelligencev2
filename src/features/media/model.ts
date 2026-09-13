@@ -231,3 +231,30 @@ export function formatBytes(bytes: number | null): string {
   }
   return `${value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`
 }
+
+/** Lo mínimo para reconocer un archivo ya subido. */
+export interface UploadedRef {
+  originalFilename: string
+  bytes: number | null
+}
+
+/**
+ * ¿Este archivo ya está en el estudio?
+ *
+ * Se compara nombre y tamaño, no un hash: calcular el hash de 2 GB en el
+ * navegador antes de decidir cuesta más que la propia subida, y estos equipos
+ * nombran cada corte con su hora de inicio, así que dos archivos distintos con
+ * el mismo nombre y el mismo tamaño no existen en la práctica.
+ *
+ * Se busca en todo el estudio y no en el bloque: un archivo es de un bloque y
+ * de uno solo, así que encontrarlo en otro también es una repetición.
+ */
+export function findDuplicate(
+  filename: string,
+  bytes: number,
+  uploaded: readonly UploadedRef[],
+): UploadedRef | null {
+  return (
+    uploaded.find((f) => f.originalFilename === filename && f.bytes === bytes) ?? null
+  )
+}

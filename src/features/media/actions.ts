@@ -114,6 +114,23 @@ export async function registerMediaFile(studyId: string, input: unknown): Promis
     return { ok: false, message: 'El archivo no llegó a R2. Vuelve a intentar la subida.' }
   }
 
+  // Última barrera contra el duplicado. El cliente ya los filtra, pero dos
+  // pestañas subiendo la misma carpeta pasarían por ese filtro sin verse.
+  const { data: existing } = await supabase
+    .from('media_files')
+    .select('id')
+    .eq('session_id', parsed.data.sessionId)
+    .eq('original_filename', parsed.data.filename)
+    .eq('bytes', parsed.data.bytes)
+    .limit(1)
+
+  if (existing?.length) {
+    // El objeto recién subido no lo referencia nadie: se borra en vez de
+    // dejarlo ocupando espacio para siempre.
+    await storage.remove(parsed.data.storageKey).catch(() => undefined)
+    return { ok: false, message: 'Este archivo ya está subido en el bloque.' }
+  }
+
   const isPart = parsed.data.recordingKey !== null && parsed.data.partNumber !== null
 
   const { error } = await supabase.from('media_files').insert({
