@@ -2,7 +2,8 @@
 // Regenerar: npx supabase gen types typescript --project-id lrnaiwilairvvnqlyxdq
 //
 // Nota: moderator_name (sessions) y mic_number (participants) se agregaron a
-// mano, porque la sesión que aplicó esa migración no podía correr el CLI.
+// mano, igual que media_files y el enum media_kind, porque la sesión que
+// aplicó esas migraciones no podía correr el CLI.
 // Conviene regenerar con el comando de arriba para descartar cualquier deriva.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
@@ -22,6 +23,50 @@ export type Database = {
   }
   public: {
     Tables: WithRelationships<{
+      media_files: {
+        Row: {
+          bytes: number | null
+          checksum: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          kind: Database['public']['Enums']['media_kind']
+          mic_number: number | null
+          original_filename: string
+          session_id: string
+          source_host: string | null
+          source_path: string | null
+          storage_key: string
+        }
+        Insert: {
+          bytes?: number | null
+          checksum?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind: Database['public']['Enums']['media_kind']
+          mic_number?: number | null
+          original_filename: string
+          session_id: string
+          source_host?: string | null
+          source_path?: string | null
+          storage_key: string
+        }
+        Update: {
+          bytes?: number | null
+          checksum?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind?: Database['public']['Enums']['media_kind']
+          mic_number?: number | null
+          original_filename?: string
+          session_id?: string
+          source_host?: string | null
+          source_path?: string | null
+          storage_key?: string
+        }
+      }
       participants: {
         Row: {
           created_at: string
@@ -344,6 +389,7 @@ export type Database = {
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
     }
     Enums: {
+      media_kind: 'video_360' | 'video_dslr' | 'audio_room' | 'audio_mic' | 'audio_ambient'
       session_status: 'scheduled' | 'uploaded' | 'processing' | 'ready' | 'error'
       stage_status: 'pending' | 'in_progress' | 'done' | 'skipped'
       study_status: 'active' | 'archived'

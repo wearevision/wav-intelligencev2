@@ -125,6 +125,15 @@ Acá recién entra el pipeline de medios, como etapa del proceso (D13).
 - Artifacts de primera clase: un paso se salta si su salida ya existe y valida
 - Transcripción y atribución de hablante
 
+**F6a en curso.** Hecho: tabla `media_files` con la ubicación del master (D19),
+bucket R2 `wav-intelligence-v2`, y el emparejador de archivos con bloque (D17) —
+por código en el nombre, si no por hora de creación contra el horario del
+bloque, y lo ambiguo queda para resolver a mano.
+
+Falta: adaptador de R2, subida prefirmada y la grilla de bloques completándose.
+Bloqueado por credenciales de R2 (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`);
+sin ellas no hay forma de verificar el camino de subida.
+
 **Entregable:** subir la grabación de una sesión real y leer su transcripción.
 
 **Cierre:** un paso que falla se re-corre solo, sin repetir los ya completados.
