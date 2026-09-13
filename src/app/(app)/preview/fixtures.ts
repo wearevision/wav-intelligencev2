@@ -1,4 +1,5 @@
 import type { MediaFile } from '@/features/media'
+import type { Participant } from '@/features/participants'
 import type { SessionPipeline } from '@/features/pipeline'
 import type { StudySession } from '@/features/sessions'
 import type { Study, StudyStage } from '@/features/studies'
@@ -306,5 +307,31 @@ export function previewPipelines(): SessionPipeline[] {
         },
       ],
     },
+  ]
+}
+
+/** Una sala con sus roles, y dos desajustes de micrófono a la vista. */
+export function previewParticipants(): Participant[] {
+  const en = (sessionId: string, rows: [string, number | null, Participant['role']][]) =>
+    rows.map(([name, micNumber, role], i) => ({
+      id: `p-${sessionId}-${i}`,
+      sessionId,
+      name,
+      micNumber,
+      seatNumber: null,
+      role,
+    }))
+
+  return [
+    ...en('s-d1b1', [
+      ['Carolina Reyes', 1, 'moderator'],
+      ['Paula Contreras', 3, 'participant'],
+      // Lleva el 5, que sí se grabó: la fila que calza.
+      ['Ignacio Soto', 5, 'participant'],
+      // Lleva el 9, del que no llegó grabación.
+      ['Marcela Díaz', 9, 'participant'],
+      ['Rodrigo Ávila', null, 'brand_staff'],
+    ]),
+    ...en('s-d1b2', [['Carolina Reyes', 1, 'moderator']]),
   ]
 }

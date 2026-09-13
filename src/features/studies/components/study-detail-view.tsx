@@ -2,6 +2,8 @@ import Link from 'next/link'
 
 import type { MediaFile } from '@/features/media'
 import { MediaSection } from '@/features/media/components/media-section'
+import type { Participant } from '@/features/participants'
+import { ParticipantsSection } from '@/features/participants/components/participants-section'
 import type { SessionPipeline } from '@/features/pipeline'
 import { PipelineSection } from '@/features/pipeline/components/pipeline-section'
 import { SessionsSection } from '@/features/sessions/components/sessions-section'
@@ -21,12 +23,14 @@ export function StudyDetailView({
   study,
   sessions,
   media,
+  participants,
   pipelines,
   today,
 }: {
   study: Study
   sessions: readonly StudySession[]
   media: readonly MediaFile[]
+  participants: readonly Participant[]
   pipelines: readonly SessionPipeline[]
   today: Date
 }) {
@@ -39,6 +43,15 @@ export function StudyDetailView({
     code: s.code,
     name: s.name,
     hasMedia: withMedia.has(s.id),
+    // Los micrófonos que de verdad se grabaron en el bloque: sirven para
+    // cruzarlos con quién los llevaba puestos.
+    recordedMics: [
+      ...new Set(
+        media
+          .filter((f) => f.sessionId === s.id && f.kind === 'audio_mic' && f.micNumber !== null)
+          .map((f) => f.micNumber as number),
+      ),
+    ].sort((a, b) => a - b),
   }))
 
   return (
@@ -72,6 +85,10 @@ export function StudyDetailView({
       {/* Sin bloques no hay dónde poner el material: la grilla es el destino. */}
       {sessions.length > 0 && (
         <MediaSection studyId={study.id} sessions={sessions} files={media} />
+      )}
+
+      {sessions.length > 0 && (
+        <ParticipantsSection studyId={study.id} blocks={blocks} participants={participants} />
       )}
 
       {sessions.length > 0 && (

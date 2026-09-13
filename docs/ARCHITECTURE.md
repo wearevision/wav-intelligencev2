@@ -306,6 +306,30 @@ Detalle completo, con las familias de nombres reconocidas:
 
 ---
 
+## D22 — El rol de cada persona decide qué entra al análisis · `Propuesta`
+
+En la sala no todos son el objeto de estudio. El moderador conduce, la gente de la
+marca observa y a veces interviene, y los tres llevan micrófono. Sus palabras se
+transcriben —hacen falta para leer la conversación— pero no son opinión de
+consumidor.
+
+`participants.role` toma cuatro valores: `participant`, `moderator`, `brand_staff`,
+`observer`. Solo el primero cuenta en los agregados.
+
+Sin esta columna el error no se ve: una pregunta del moderador entra al promedio de
+sentimiento, el promedio sale distinto, y nada lo delata. Es la clase de defecto que
+se descubre meses después comparando contra una lectura manual, o no se descubre.
+
+Dos consecuencias:
+
+- **El plan de transcripción lleva el rol**, no solo el nombre. Quien procese después
+  no tiene que volver a consultar la base para saber qué sumar.
+- **La interfaz lo dice donde se elige.** Al marcar a alguien como moderador, la misma
+  fila explica que no cuenta como opinión. Que algo quede fuera del análisis no
+  debería descubrirse leyendo el informe.
+
+---
+
 ## Pendiente de decidir
 
 | Tema | Por qué aún no |

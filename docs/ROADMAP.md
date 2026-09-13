@@ -167,6 +167,14 @@ esconderse dentro de una suma de duraciones.
 Falta el lado de escritorio también acá: unir los segmentos del 360 es de WAV
 Ingest y su diseño v3 todavía no lo contempla.
 
+**Participantes, micrófonos y roles (D22).** Un listado editable por bloque:
+nombre, micrófono y rol. El rol decide qué entra al análisis —el moderador y la
+marca también llevan micrófono y no son opinión de consumidor— y viaja en el
+plan de transcripción. Se cruza contra lo grabado: avisa cuando una pista no
+tiene dueño y cuando alguien lleva un micrófono del que no llegó grabación. El
+listado de convocatoria se pega desde la planilla y se muestra lo entendido
+antes de escribir nada.
+
 **Entregable:** subir la grabación de una sesión real y leer su transcripción.
 
 **Cierre:** un paso que falla se re-corre solo, sin repetir los ya completados.

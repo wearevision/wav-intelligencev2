@@ -113,6 +113,7 @@ export type Database = {
           id: string
           mic_number: number | null
           name: string
+          role: string
           seat_number: number | null
           session_id: string
         }
@@ -121,6 +122,7 @@ export type Database = {
           id?: string
           mic_number?: number | null
           name: string
+          role?: string
           seat_number?: number | null
           session_id: string
         }
@@ -129,6 +131,7 @@ export type Database = {
           id?: string
           mic_number?: number | null
           name?: string
+          role?: string
           seat_number?: number | null
           session_id?: string
         }

@@ -242,7 +242,7 @@ const runTranscriptionPlan: StepRunner = async (ctx) => {
 
   const { data: participants, error } = await ctx.supabase
     .from('participants')
-    .select('id, name, mic_number')
+    .select('id, name, mic_number, role')
     .eq('session_id', ctx.sessionId)
 
   if (error) throw new Error(`No se pudieron leer los participantes: ${error.message}`)
@@ -257,12 +257,19 @@ const runTranscriptionPlan: StepRunner = async (ctx) => {
     sessionId: ctx.sessionId,
     generatedAt: new Date().toISOString(),
     branch,
-    micTracks: buildSources(micTracks).map((source) => ({
-      ...source,
-      participantId: source.micNumber !== null ? (byMic.get(source.micNumber)?.id ?? null) : null,
-      participantName:
-        source.micNumber !== null ? (byMic.get(source.micNumber)?.name ?? null) : null,
-    })),
+    micTracks: buildSources(micTracks).map((source) => {
+      const person = source.micNumber !== null ? byMic.get(source.micNumber) : undefined
+      return {
+        ...source,
+        participantId: person?.id ?? null,
+        participantName: person?.name ?? null,
+        role: person?.role ?? null,
+        // Lo que dice el moderador o la marca no es opinión de consumidor. Se
+        // transcribe igual —hace falta para leer la conversación— pero viaja
+        // marcado para que los agregados no lo cuenten.
+        countsInAnalysis: person ? person.role === 'participant' : null,
+      }
+    }),
     roomMix: buildSources(roomMix),
     // Micrófonos grabados que no corresponden a ningún participante del listado.
     // No frena el plan: se transcriben igual y quedan sin nombre hasta que

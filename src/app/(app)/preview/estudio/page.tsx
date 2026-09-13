@@ -4,6 +4,7 @@ import { StudyDetailView } from '@/features/studies/components/study-detail-view
 
 import {
   previewMedia,
+  previewParticipants,
   previewPipelines,
   previewSessions,
   previewStudies,
@@ -17,6 +18,7 @@ export default function PreviewStudyPage() {
 
   return <StudyDetailView study={study} sessions={previewSessions(today)}
       media={previewMedia()}
+      participants={previewParticipants()}
       pipelines={previewPipelines()}
       today={today} />
 }
