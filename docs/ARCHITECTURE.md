@@ -225,9 +225,9 @@ mantienen porque siguen siendo buenas:
 
 Runner: Trigger.dev, por jobs largos, reintentos y extensión Python para pyannote.
 
-## D16–D18 — Sesiones, emparejamiento de archivos y transcripción · `Propuesta`
+## D16–D19 — Sesiones, archivos, transcripción y dónde se procesa · `Propuesta`
 
-Tres decisiones que salen del diseño de F5 y F6. El razonamiento completo está
+Cuatro decisiones que salen del diseño de F5 y F6. El razonamiento completo está
 en [plans/2026-09-13-f5-f6.md](plans/2026-09-13-f5-f6.md); acá el resumen para
 que el registro quede completo.
 
@@ -239,6 +239,11 @@ que el registro quede completo.
   app genera la lista de archivos esperados y empareja contra ella. Lo que no
   calza va a una bandeja de "sin asignar", nunca se descarta: un nombre mal
   puesto es un error de rotulado, y el material es irrepetible.
+- **D19 — Lo pesado se procesa en local; a la nube solo sube lo liviano.** Dos
+  horas de 360 en 5.7K son decenas de gigas por bloque, y el análisis sale del
+  audio de todos modos. El video se transcodifica en WAV Ingest y sube solo el
+  HLS; el audio sube tal cual. El master se queda en disco, así que su ubicación
+  se guarda en columna: sin eso, en dos años nadie lo encuentra.
 - **D18 — La transcripción se ramifica según el audio disponible.** Varía entre
   estudios —mezcla de sala, pistas por micrófono, o ambas—, así que ningún paso
   del pipeline asume una forma fija.
