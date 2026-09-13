@@ -23,6 +23,8 @@ export interface DraftVerbatim {
 /** Una parte ya subida, para saber de qué archivo salió cada tramo. */
 export interface PartRef {
   mediaFileId: string
+  /** Su número dentro de la grabación, cuando se conoce. */
+  partNumber?: number | null
   /** Segundos desde el inicio de su grabación. */
   offsetSeconds: number
   durationSeconds: number | null
@@ -110,6 +112,14 @@ export function toVerbatims(
       ? (context.partsByRecording.get(source.recordingKey) ?? [])
       : []
 
+    // Cuando la fuente dice qué parte es, el archivo se sabe sin calcular nada.
+    // El desfase solo hace falta cuando el productor mandó la grabación entera
+    // como una sola fuente.
+    const declaredPart =
+      source.partNumber !== null && source.partNumber !== undefined
+        ? (parts.find((p) => p.partNumber === source.partNumber)?.mediaFileId ?? null)
+        : null
+
     for (const segment of source.segments) {
       if (segment.end < segment.start) continue
 
@@ -120,7 +130,7 @@ export function toVerbatims(
         endTs: round(offset + segment.end),
         text: segment.text,
         confidence: segment.confidence ?? null,
-        mediaFileId: resolvePart(segment.start, parts),
+        mediaFileId: declaredPart ?? resolvePart(segment.start, parts),
       })
     }
   }

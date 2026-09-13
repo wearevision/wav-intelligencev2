@@ -24,6 +24,15 @@ const segmentSchema = z.object({
 const sourceSchema = z.object({
   /** La grabación de la que salió. Null si era un archivo entero. */
   recordingKey: z.string().min(1).nullish(),
+  /**
+   * Qué parte de la grabación es esta fuente.
+   *
+   * Cuando viene, cada parte es su propia fuente con su propio cero, y el
+   * archivo del que salió cada tramo se resuelve por `(grabación, parte)` en
+   * vez de calcularlo desde el desfase. Es exacto y le ahorra al productor
+   * tener que concatenar nada.
+   */
+  partNumber: z.number().int().min(1).max(999).nullish(),
   /** El micrófono, que es lo que permite ponerle nombre a quien habla. */
   micNumber: z.number().int().min(1).max(99).nullish(),
   /**

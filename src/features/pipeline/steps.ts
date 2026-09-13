@@ -369,6 +369,7 @@ const runAttribute: StepRunner = async (ctx) => {
       recordingKey,
       list!.map((file, i) => ({
         mediaFileId: file.id,
+        partNumber: file.part_number,
         offsetSeconds: offsets[i] ?? 0,
         durationSeconds: file.duration_seconds,
       })),

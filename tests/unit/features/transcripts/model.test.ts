@@ -240,3 +240,40 @@ describe('formatTimestamp', () => {
     expect(formatTimestamp(-5)).toBe('0:00')
   })
 })
+
+describe('toVerbatims · la fuente declara qué parte es', () => {
+  const PARTS: PartRef[] = [
+    { mediaFileId: 'f1', partNumber: 1, offsetSeconds: 0, durationSeconds: 1800 },
+    { mediaFileId: 'f2', partNumber: 2, offsetSeconds: 1800, durationSeconds: 1800 },
+  ]
+  const contexto = {
+    participantByMic: new Map<number, string>(),
+    partsByRecording: new Map<string, PartRef[]>([['grabacion-a', PARTS]]),
+  }
+
+  it('resuelve el archivo por número de parte y no por desfase', () => {
+    // La parte 2 empieza en su propio cero: por desfase caería en f1.
+    const fuente = source({
+      partNumber: 2,
+      segments: [{ start: 10, end: 12, text: 'de la segunda parte' }],
+    })
+    const [verbatim] = toVerbatims(artifact([fuente]), contexto)
+
+    expect(verbatim!.mediaFileId).toBe('f2')
+  })
+
+  it('sin número de parte sigue resolviendo por desfase', () => {
+    const fuente = source({ segments: [{ start: 2000, end: 2002, text: 'tarde' }] })
+    const [verbatim] = toVerbatims(artifact([fuente]), contexto)
+
+    expect(verbatim!.mediaFileId).toBe('f2')
+  })
+
+  it('un número de parte que no existe no inventa un archivo', () => {
+    const fuente = source({ partNumber: 9, segments: [{ start: 1, end: 2, text: 'x' }] })
+    const [verbatim] = toVerbatims(artifact([fuente]), contexto)
+
+    // Cae al desfase, que para el segundo 1 da la primera parte.
+    expect(verbatim!.mediaFileId).toBe('f1')
+  })
+})
