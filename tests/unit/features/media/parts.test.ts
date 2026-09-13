@@ -318,4 +318,24 @@ describe('groupRecordings · encadenado por hora', () => {
     expect(recordings).toEqual([])
     expect(loose).toHaveLength(1)
   })
+
+  it('el nombre nativo manda: los dos lentes del 360 no se encadenan por hora', () => {
+    // Los cuatro segmentos llevan la misma hora en el nombre. Encadenar por
+    // reloj los junta a los cuatro en una grabación y mezcla los lentes, que
+    // es justo lo que el parser del 360 existe para evitar.
+    const { recordings } = groupRecordings([
+      { filename: 'VID_20261110_130000_00_001.insv', durationSeconds: 600 },
+      { filename: 'VID_20261110_130000_00_002.insv', durationSeconds: 600 },
+      { filename: 'VID_20261110_130000_01_001.insv', durationSeconds: 600 },
+      { filename: 'VID_20261110_130000_01_002.insv', durationSeconds: 600 },
+    ])
+
+    expect(recordings).toHaveLength(2)
+    expect(recordings.map((r) => r.key)).toEqual([
+      'VID_20261110_130000_00',
+      'VID_20261110_130000_01',
+    ])
+    expect(recordings.every((r) => r.family === 'insta360')).toBe(true)
+    expect(recordings[0]!.parts.map((p) => p.partNumber)).toEqual([1, 2])
+  })
 })

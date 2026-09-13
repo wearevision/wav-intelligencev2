@@ -278,22 +278,29 @@ export function groupRecordings(files: readonly PartInput[]): {
 
   // Los nombres con fecha y hora no se agrupan por prefijo —no hay ninguno en
   // común— sino encadenando el final de una parte con el inicio de la
-  // siguiente. Se resuelven aparte y antes que el resto.
-  const chained = chainByTime(files)
-  const claimed = new Set(chained.flatMap((r) => r.parts.map((p) => p.filename)))
+  // siguiente. Eso vale solo para los nombres que no dicen nada más que la
+  // hora: cuando el equipo ya declaró la grabación y la parte, esa declaración
+  // manda. Los cuatro segmentos de un 360 —dos lentes, dos partes— llevan la
+  // misma hora en el nombre, y encadenarlos por reloj los junta a los cuatro
+  // mezclando los lentes.
+  const unnamed: PartInput[] = []
 
   for (const file of files) {
-    if (claimed.has(file.filename)) continue
-
     const parsed = parseNativeName(file.filename)
     if (!parsed) {
-      loose.push(file)
+      unnamed.push(file)
       continue
     }
     const bucket = buckets.get(parsed.recordingKey)
     if (bucket) bucket.push({ parsed, file })
     else buckets.set(parsed.recordingKey, [{ parsed, file }])
   }
+
+  const chained = chainByTime(unnamed)
+  const claimed = new Set(chained.flatMap((r) => r.parts.map((p) => p.filename)))
+  // Lo que no se encadenó con nadie es un archivo entero, y vuelve: no se
+  // descarta y no se inventa una grabación de uno para disimular.
+  for (const file of unnamed) if (!claimed.has(file.filename)) loose.push(file)
 
   const recordings: Recording[] = []
 
