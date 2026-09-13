@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server'
 import { z } from 'zod'
 
 import { fail, json, preflight } from '@/server/api/respond'
-import { artifactKey, mediaKey, randomSuffix } from '@/server/storage/keys'
+import { artifactKey, hlsKeys, mediaKey, randomSuffix } from '@/server/storage/keys'
 import { storage } from '@/server/storage/r2'
 import { requireUser } from '@/server/supabase/request'
 
@@ -29,9 +29,30 @@ const artifactItemSchema = z.object({
   kind: z.string().trim().min(1).max(80),
 })
 
+/**
+ * Un video transcodificado en local: el manifiesto y sus segmentos.
+ *
+ * El nombre de cada segmento se valida con severidad porque va a formar parte
+ * de una clave: sin esto, un `../` en el nombre escribiría fuera del prefijo
+ * del estudio.
+ */
+const hlsItemSchema = z.object({
+  target: z.literal('hls'),
+  sessionId: z.uuid(),
+  filename: z.string().trim().min(1).max(255),
+  kind: z.enum(['video_360', 'video_dslr']),
+  segmentFilenames: z
+    .array(z.string().regex(/^[A-Za-z0-9._-]+\.ts$/, 'Nombre de segmento inválido'))
+    .min(1)
+    .max(5000),
+})
+
 const bodySchema = z.object({
   studyId: z.uuid(),
-  items: z.array(z.discriminatedUnion('target', [mediaItemSchema, artifactItemSchema])).min(1).max(200),
+  items: z
+    .array(z.discriminatedUnion('target', [mediaItemSchema, artifactItemSchema, hlsItemSchema]))
+    .min(1)
+    .max(200),
 })
 
 /**
@@ -73,6 +94,26 @@ export async function POST(request: NextRequest) {
     const uploads = await Promise.all(
       items.map(async (item) => {
         const code = codeById.get(item.sessionId) ?? null
+
+        if (item.target === 'hls') {
+          const keys = hlsKeys(studyId, code, item.filename, randomSuffix(), item.segmentFilenames)
+          return {
+            target: item.target,
+            sessionId: item.sessionId,
+            filename: item.filename,
+            // La clave del manifiesto es la del media_file: es lo que se
+            // reproduce, y los segmentos viven referenciados solo por él.
+            storageKey: keys.manifestKey,
+            url: await storage.presignPut(keys.manifestKey, 'application/vnd.apple.mpegurl'),
+            segments: await Promise.all(
+              keys.segments.map(async (segment) => ({
+                filename: segment.filename,
+                storageKey: segment.key,
+                url: await storage.presignPut(segment.key, 'video/mp2t'),
+              })),
+            ),
+          }
+        }
 
         if (item.target === 'artifact') {
           const key = artifactKey(studyId, code, item.kind)

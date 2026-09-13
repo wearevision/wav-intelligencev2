@@ -5,14 +5,19 @@
 
 /** Deja el nombre utilizable como parte de una ruta, sin perder legibilidad. */
 export function safeFilename(name: string): string {
-  return (
-    name
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^A-Za-z0-9._-]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 120) || 'archivo'
-  )
+  const clean = name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120)
+
+  // Un nombre que queda en puros puntos —`.` o `..`— no nombra un archivo: es
+  // una referencia a un directorio. En R2 la clave es una cadena opaca y no
+  // haría daño, pero cualquier consumidor que la mapee a un sistema de
+  // archivos la interpretaría como "el directorio de arriba".
+  if (clean === '' || /^\.+$/.test(clean)) return 'archivo'
+  return clean
 }
 
 function splitExtension(name: string): { stem: string; ext: string } {
@@ -53,4 +58,35 @@ export function randomSuffix(): string {
 export function artifactKey(studyId: string, code: string | null, kind: string): string {
   const block = code ?? 'sin-bloque'
   return `studies/${studyId}/${block}/artifacts/${safeFilename(kind)}.json`
+}
+
+/**
+ * Un paquete HLS: el manifiesto y sus segmentos, bajo un mismo prefijo.
+ *
+ * `studies/{estudio}/{código}/hls/{nombre}-{sufijo}/index.m3u8`
+ *
+ * Los segmentos van al lado del manifiesto porque este los referencia por
+ * nombre relativo: repartidos en otro prefijo, el reproductor no los
+ * encontraría.
+ */
+export function hlsKeys(
+  studyId: string,
+  code: string | null,
+  filename: string,
+  suffix: string,
+  segmentFilenames: readonly string[],
+): { manifestKey: string; segments: { filename: string; key: string }[] } {
+  const { stem } = splitExtension(safeFilename(filename))
+  const block = code ?? 'sin-bloque'
+  const prefix = `studies/${studyId}/${block}/hls/${stem}-${suffix}`
+
+  return {
+    manifestKey: `${prefix}/index.m3u8`,
+    segments: segmentFilenames.map((name) => ({
+      filename: name,
+      // El nombre ya viene validado por el esquema de la ruta; se sanea igual
+      // porque una clave la construye el servidor y no el cliente.
+      key: `${prefix}/${safeFilename(name)}`,
+    })),
+  }
 }
