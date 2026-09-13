@@ -25,12 +25,15 @@ export async function listStudyMedia(studyId: string): Promise<MediaFile[]> {
   const { data, error } = await supabase
     .from('media_files')
     .select(
-      'id, session_id, kind, storage_key, original_filename, bytes, duration_seconds, mic_number, source_path, source_host, created_at',
+      'id, session_id, kind, storage_key, original_filename, bytes, duration_seconds, mic_number, source_path, source_host, recording_key, part_number, recorded_at, created_at',
     )
     .in(
       'session_id',
       sessions.map((s) => s.id),
     )
+    // Las partes de una grabación salen en orden; el resto por antigüedad.
+    .order('recording_key', { ascending: true, nullsFirst: true })
+    .order('part_number', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: true })
 
   if (error) throw new Error(`No se pudo cargar el material: ${error.message}`)
@@ -46,6 +49,9 @@ export async function listStudyMedia(studyId: string): Promise<MediaFile[]> {
     micNumber: r.mic_number,
     sourcePath: r.source_path,
     sourceHost: r.source_host,
+    recordingKey: r.recording_key,
+    partNumber: r.part_number,
+    recordedAt: r.recorded_at,
     createdAt: r.created_at,
   }))
 }

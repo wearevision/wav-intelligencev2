@@ -180,7 +180,78 @@ describe('paso · plan de transcripción', () => {
 
     const plan = written()
     expect(plan.unassignedMics).toEqual([9])
-    expect((plan.micTracks as { participantId: string | null }[])[1]!.participantId).toBeNull()
+    const sinDuenio = (plan.micTracks as { micNumber: number; participantId: string | null }[]).find(
+      (t) => t.micNumber === 9,
+    )
+    expect(sinDuenio!.participantId).toBeNull()
+  })
+
+  it('un archivo entero es una fuente de una parte, con desfase cero', async () => {
+    getText.mockResolvedValue(inventory([MIC]))
+    await RUNNERS.plan_transcripcion!(context({ participants: { data: [] } }))
+
+    const [source] = written().micTracks as {
+      recordingKey: string | null
+      parts: { partNumber: number; offsetSeconds: number }[]
+    }[]
+    expect(source!.recordingKey).toBeNull()
+    expect(source!.parts).toEqual([
+      { storageKey: 'k/mic1.wav', partNumber: 1, offsetSeconds: 0, durationSeconds: null },
+    ])
+  })
+
+  it('las partes de una grabación van en orden y con su desfase', async () => {
+    const parte = (n: number, endsAt: string, duration: number) => ({
+      kind: 'audio_mic',
+      storageKey: `k/DR0000_000${n}.wav`,
+      originalFilename: `DR0000_000${n}.wav`,
+      micNumber: 5,
+      recordingKey: 'DR0000',
+      partNumber: n,
+      recordedAt: endsAt,
+      durationSeconds: duration,
+    })
+    // Dos partes pegadas de 600 s: la primera termina a las 15:10, la otra a las 15:20.
+    getText.mockResolvedValue(
+      inventory([
+        parte(2, '2026-11-10T15:20:00.000Z', 600),
+        parte(1, '2026-11-10T15:10:00.000Z', 600),
+      ]),
+    )
+    await RUNNERS.plan_transcripcion!(context({ participants: { data: [] } }))
+
+    const [source] = written().micTracks as {
+      recordingKey: string
+      parts: { partNumber: number; offsetSeconds: number }[]
+      gaps: unknown[]
+      assumedContiguous: boolean
+    }[]
+    expect(source!.recordingKey).toBe('DR0000')
+    expect(source!.parts.map((p) => p.partNumber)).toEqual([1, 2])
+    expect(source!.parts.map((p) => p.offsetSeconds)).toEqual([0, 600])
+    expect(source!.gaps).toEqual([])
+    expect(source!.assumedContiguous).toBe(false)
+  })
+
+  it('una pausa entre partes viaja con el plan', async () => {
+    const parte = (n: number, endsAt: string) => ({
+      kind: 'audio_mic',
+      storageKey: `k/DR0000_000${n}.wav`,
+      originalFilename: `DR0000_000${n}.wav`,
+      micNumber: 5,
+      recordingKey: 'DR0000',
+      partNumber: n,
+      recordedAt: endsAt,
+      durationSeconds: 600,
+    })
+    // La parte 2 arranca cuatro minutos después de que terminó la 1.
+    getText.mockResolvedValue(
+      inventory([parte(1, '2026-11-10T15:10:00.000Z'), parte(2, '2026-11-10T15:24:00.000Z')]),
+    )
+    await RUNNERS.plan_transcripcion!(context({ participants: { data: [] } }))
+
+    const [source] = written().micTracks as { gaps: { afterPart: number; seconds: number }[] }[]
+    expect(source!.gaps).toEqual([{ afterPart: 1, seconds: 240 }])
   })
 
   it('sin audio no hay nada que transcribir', async () => {

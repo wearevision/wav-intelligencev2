@@ -36,6 +36,12 @@ const registerSchema = z.object({
   kind: kindSchema,
   micNumber: z.number().int().min(1).max(99).nullable(),
   bytes: z.number().int().min(1).max(MAX_BYTES),
+  // Partes de una misma grabación. Los tres van juntos o ninguno: una parte
+  // sin clave de grabación, o una clave sin orden, no dicen nada.
+  recordingKey: z.string().trim().min(1).max(200).nullable().default(null),
+  partNumber: z.number().int().min(1).max(999).nullable().default(null),
+  recordedAt: z.iso.datetime().nullable().default(null),
+  durationSeconds: z.number().int().min(0).nullable().default(null),
 })
 
 /**
@@ -108,6 +114,8 @@ export async function registerMediaFile(studyId: string, input: unknown): Promis
     return { ok: false, message: 'El archivo no llegó a R2. Vuelve a intentar la subida.' }
   }
 
+  const isPart = parsed.data.recordingKey !== null && parsed.data.partNumber !== null
+
   const { error } = await supabase.from('media_files').insert({
     session_id: parsed.data.sessionId,
     kind: parsed.data.kind,
@@ -115,6 +123,10 @@ export async function registerMediaFile(studyId: string, input: unknown): Promis
     original_filename: parsed.data.filename,
     bytes: parsed.data.bytes,
     mic_number: parsed.data.kind === 'audio_mic' ? parsed.data.micNumber : null,
+    recording_key: isPart ? parsed.data.recordingKey : null,
+    part_number: isPart ? parsed.data.partNumber : null,
+    recorded_at: parsed.data.recordedAt,
+    duration_seconds: parsed.data.durationSeconds,
   })
 
   if (error) {

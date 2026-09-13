@@ -1,4 +1,6 @@
 // Solo-servidor: escribe en R2 y lee la base. Se importa desde ./server.
+import { computeOffsets } from '@/features/media/parts'
+
 import { artifactKey } from '@/server/storage/keys'
 import { storage } from '@/server/storage/r2'
 import type { createClient } from '@/server/supabase/server'
@@ -42,6 +44,11 @@ interface InventoryEntry {
   originalFilename: string
   bytes: number | null
   micNumber: number | null
+  /** Cuando el archivo es una parte: de qué grabación y en qué orden. */
+  recordingKey: string | null
+  partNumber: number | null
+  recordedAt: string | null
+  durationSeconds: number | null
 }
 
 interface Inventory {
@@ -64,9 +71,13 @@ interface Inventory {
 const runInventory: StepRunner = async (ctx) => {
   const { data, error } = await ctx.supabase
     .from('media_files')
-    .select('id, kind, storage_key, original_filename, bytes, mic_number')
+    .select(
+      'id, kind, storage_key, original_filename, bytes, mic_number, recording_key, part_number, recorded_at, duration_seconds',
+    )
     .eq('session_id', ctx.sessionId)
     .order('kind', { ascending: true })
+    .order('recording_key', { ascending: true, nullsFirst: true })
+    .order('part_number', { ascending: true, nullsFirst: true })
 
   if (error) throw new Error(`No se pudo leer el material: ${error.message}`)
   if (!data?.length) throw new Error('El bloque no tiene material subido.')
@@ -93,6 +104,10 @@ const runInventory: StepRunner = async (ctx) => {
       originalFilename: row.original_filename,
       bytes: row.bytes,
       micNumber: row.mic_number,
+      recordingKey: row.recording_key,
+      partNumber: row.part_number,
+      recordedAt: row.recorded_at,
+      durationSeconds: row.duration_seconds,
     })),
   }
 
@@ -100,6 +115,93 @@ const runInventory: StepRunner = async (ctx) => {
 }
 
 export type TranscriptionBranch = 'mic_tracks' | 'diarization' | 'hybrid'
+
+interface PlanPart {
+  storageKey: string
+  partNumber: number
+  /** Segundos desde el inicio de la fuente. Null si no se pudo calcular. */
+  offsetSeconds: number | null
+  durationSeconds: number | null
+}
+
+interface PlanSource {
+  /** Null cuando la fuente es un archivo entero y no una grabación cortada. */
+  recordingKey: string | null
+  micNumber: number | null
+  parts: PlanPart[]
+  /** Minutos que no quedaron grabados entre una parte y la siguiente. */
+  gaps: { afterPart: number; seconds: number }[]
+  /** true si los desfases salen de sumar duraciones por falta de reloj. */
+  assumedContiguous: boolean
+}
+
+/**
+ * Junta las partes de cada grabación en una fuente ordenada.
+ *
+ * La transcripción recorre las partes en secuencia y desplaza los tiempos con
+ * `offsetSeconds`: nunca se pegan los archivos, porque mover gigabytes para
+ * producir algo que se usa una vez es caro y frágil. Los huecos viajan con la
+ * fuente para que un silencio de cuatro minutos no se lea como parte de la
+ * conversación.
+ */
+function buildSources(entries: readonly InventoryEntry[]): PlanSource[] {
+  const grouped = new Map<string, InventoryEntry[]>()
+  const singles: InventoryEntry[] = []
+
+  for (const entry of entries) {
+    // Se comprueba por falsedad y no contra null: un inventario producido en
+    // local puede omitir los campos en vez de mandarlos nulos, y una clave
+    // vacía tampoco identifica ninguna grabación.
+    if (!entry.recordingKey || !entry.partNumber) {
+      singles.push(entry)
+      continue
+    }
+    const list = grouped.get(entry.recordingKey)
+    if (list) list.push(entry)
+    else grouped.set(entry.recordingKey, [entry])
+  }
+
+  const sources: PlanSource[] = singles.map((entry) => ({
+    recordingKey: null,
+    micNumber: entry.micNumber,
+    parts: [
+      {
+        storageKey: entry.storageKey,
+        partNumber: 1,
+        offsetSeconds: 0,
+        durationSeconds: entry.durationSeconds ?? null,
+      },
+    ],
+    gaps: [],
+    assumedContiguous: false,
+  }))
+
+  for (const [recordingKey, list] of grouped) {
+    list.sort((a, b) => (a.partNumber as number) - (b.partNumber as number))
+    const { offsets, gaps, assumedContiguous } = computeOffsets(
+      list.map((e) => ({
+        filename: e.originalFilename,
+        modifiedAt: e.recordedAt ? new Date(e.recordedAt) : null,
+        durationSeconds: e.durationSeconds,
+      })),
+    )
+
+    sources.push({
+      recordingKey,
+      micNumber: list[0]!.micNumber,
+      parts: list.map((entry, i) => ({
+        storageKey: entry.storageKey,
+        partNumber: entry.partNumber as number,
+        offsetSeconds: offsets[i] ?? null,
+        durationSeconds: entry.durationSeconds ?? null,
+      })),
+      gaps,
+      assumedContiguous,
+    })
+  }
+
+  return sources
+}
 
 /**
  * Paso 2 · Plan de transcripción.
@@ -151,17 +253,17 @@ const runTranscriptionPlan: StepRunner = async (ctx) => {
     .filter((n): n is number => n !== null && !byMic.has(n))
 
   return writeArtifact(ctx, 'transcription_plan', {
-    version: 1,
+    version: 2,
     sessionId: ctx.sessionId,
     generatedAt: new Date().toISOString(),
     branch,
-    micTracks: micTracks.map((t) => ({
-      storageKey: t.storageKey,
-      micNumber: t.micNumber,
-      participantId: t.micNumber !== null ? (byMic.get(t.micNumber)?.id ?? null) : null,
-      participantName: t.micNumber !== null ? (byMic.get(t.micNumber)?.name ?? null) : null,
+    micTracks: buildSources(micTracks).map((source) => ({
+      ...source,
+      participantId: source.micNumber !== null ? (byMic.get(source.micNumber)?.id ?? null) : null,
+      participantName:
+        source.micNumber !== null ? (byMic.get(source.micNumber)?.name ?? null) : null,
     })),
-    roomMix: roomMix.map((r) => ({ storageKey: r.storageKey, kind: r.kind })),
+    roomMix: buildSources(roomMix),
     // Micrófonos grabados que no corresponden a ningún participante del listado.
     // No frena el plan: se transcriben igual y quedan sin nombre hasta que
     // alguien complete la asignación.

@@ -64,6 +64,9 @@ export type Database = {
           kind: Database['public']['Enums']['media_kind']
           mic_number: number | null
           original_filename: string
+          part_number: number | null
+          recorded_at: string | null
+          recording_key: string | null
           session_id: string
           source_host: string | null
           source_path: string | null
@@ -78,6 +81,9 @@ export type Database = {
           kind: Database['public']['Enums']['media_kind']
           mic_number?: number | null
           original_filename: string
+          part_number?: number | null
+          recorded_at?: string | null
+          recording_key?: string | null
           session_id: string
           source_host?: string | null
           source_path?: string | null
@@ -92,6 +98,9 @@ export type Database = {
           kind?: Database['public']['Enums']['media_kind']
           mic_number?: number | null
           original_filename?: string
+          part_number?: number | null
+          recorded_at?: string | null
+          recording_key?: string | null
           session_id?: string
           source_host?: string | null
           source_path?: string | null

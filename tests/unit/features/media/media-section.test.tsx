@@ -1,10 +1,18 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MediaSection, type SessionRef } from '@/features/media/components/media-section'
 import type { MediaFile } from '@/features/media'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
+// jsdom no implementa HTMLMediaElement.load, así que leer la duración de
+// verdad colgaría hasta el timeout. Se fija por archivo desde cada prueba.
+const durations = new Map<string, number>()
+vi.mock('@/features/media/duration', () => ({
+  readDuration: async (file: File) => durations.get(file.name) ?? null,
+  readDurations: async (files: File[]) => files.map((f) => durations.get(f.name) ?? null),
+}))
+
 vi.mock('@/features/media/actions', () => ({
   presignMediaUpload: vi.fn(),
   registerMediaFile: vi.fn(),
@@ -17,11 +25,20 @@ const SESSIONS: SessionRef[] = [
   { id: 's-d1b2', code: 'd1b2', name: 'Día 1 · Bloque 2', scheduledAt: '2026-11-10T20:00:00.000Z' },
 ]
 
-function drop(names: string[]) {
+/** `lastModified` fijo para que el emparejado por horario sea determinístico. */
+async function drop(names: string[], lastModified = Date.parse('2026-11-10T15:00:00.000Z')) {
   const input = screen.getByLabelText('Soltar archivos aquí') as HTMLInputElement
-  const files = names.map((n) => new File(['x'], n, { type: 'audio/wav' }))
-  fireEvent.change(input, { target: { files } })
+  const files = names.map(
+    (n) => new File(['x'], n, { type: 'audio/wav', lastModified }),
+  )
+  await act(async () => {
+    fireEvent.change(input, { target: { files } })
+  })
 }
+
+beforeEach(() => {
+  durations.clear()
+})
 
 describe('MediaSection', () => {
   it('marca los bloques sin audio y no los que sí lo tienen', () => {
@@ -37,6 +54,9 @@ describe('MediaSection', () => {
         micNumber: null,
         sourcePath: null,
         sourceHost: null,
+        recordingKey: null,
+        partNumber: null,
+        recordedAt: null,
         createdAt: '2026-11-10T15:00:00.000Z',
       },
     ]
@@ -46,9 +66,9 @@ describe('MediaSection', () => {
     expect(screen.getByText('d1b1-sala.wav')).toBeInTheDocument()
   })
 
-  it('empareja por código lo que se suelta y lo deja listo para subir', () => {
+  it('empareja por código lo que se suelta y lo deja listo para subir', async () => {
     render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
-    drop(['d1b2-sala.wav'])
+    await drop(['d1b2-sala.wav'])
 
     expect(screen.getByText('Por subir')).toBeInTheDocument()
     expect(screen.getByText('Por código')).toBeInTheDocument()
@@ -58,9 +78,10 @@ describe('MediaSection', () => {
     expect(block.value).toBe('s-d1b2')
   })
 
-  it('lo que no calza va a la bandeja y no se puede subir hasta asignarlo', () => {
+  it('lo que no calza va a la bandeja y no se puede subir hasta asignarlo', async () => {
     render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
-    drop(['grabacion-suelta.wav'])
+    // Fuera de todo horario agendado: no debe calzar ni por código ni por hora.
+    await drop(['grabacion-suelta.wav'], Date.parse('2020-01-01T00:00:00.000Z'))
 
     expect(screen.getByText('Sin bloque asignado')).toBeInTheDocument()
     expect(screen.getByText('No calza con ningún bloque')).toBeInTheDocument()
@@ -72,16 +93,16 @@ describe('MediaSection', () => {
     expect(screen.getByRole('button', { name: 'Subir' })).toBeEnabled()
   })
 
-  it('el número de micrófono sale del nombre', () => {
+  it('el número de micrófono sale del nombre', async () => {
     render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
-    drop(['d1b1-mic07.wav'])
+    await drop(['d1b1-mic07.wav'])
 
     expect(screen.getByText('Mic 7')).toBeInTheDocument()
   })
 
-  it('un archivo se puede descartar de la cola antes de subir', () => {
+  it('un archivo se puede descartar de la cola antes de subir', async () => {
     render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
-    drop(['d1b1-sala.wav'])
+    await drop(['d1b1-sala.wav'])
 
     fireEvent.click(screen.getByRole('button', { name: 'Descartar de la lista' }))
 
@@ -102,6 +123,9 @@ describe('MediaSection', () => {
         micNumber: null,
         sourcePath: '/Volumes/WAV-01/d1b1/VID_0001.insv',
         sourceHost: 'Disco WAV-01',
+        recordingKey: null,
+        partNumber: null,
+        recordedAt: null,
         createdAt: '2026-11-10T15:00:00.000Z',
       },
     ]
@@ -110,5 +134,61 @@ describe('MediaSection', () => {
     const row = screen.getByText('d1b1-360.insv').closest('li') as HTMLElement
     expect(within(row).getByText(/Disco WAV-01/)).toBeInTheDocument()
     expect(within(row).getByText(/VID_0001\.insv/)).toBeInTheDocument()
+  })
+})
+
+describe('MediaSection · grabaciones en partes', () => {
+  it('junta las partes en una sola fila con un solo selector de bloque', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    durations.set('DR0000_0001.wav', 600)
+    durations.set('DR0000_0002.wav', 600)
+    await drop(['DR0000_0001.wav', 'DR0000_0002.wav'])
+
+    expect(screen.getByText('DR0000')).toBeInTheDocument()
+    // Un solo desplegable de bloque para las dos partes, no uno por archivo.
+    expect(screen.getAllByLabelText('Elegir bloque')).toHaveLength(1)
+    expect(screen.getByText('DR0000_0001.wav')).toBeInTheDocument()
+    expect(screen.getByText('DR0000_0002.wav')).toBeInTheDocument()
+  })
+
+  it('dice cuántas partes son y que van seguidas', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    // La 1 termina a las 15:00 y dura 600 s; la 2 arranca justo ahí.
+    durations.set('DR0000_0001.wav', 600)
+    durations.set('DR0000_0002.wav', 600)
+    await drop(['DR0000_0001.wav'], Date.parse('2026-11-10T15:00:00.000Z'))
+    await drop(['DR0000_0002.wav'], Date.parse('2026-11-10T15:10:00.000Z'))
+
+    expect(screen.getByText(/2 partes · continuas/)).toBeInTheDocument()
+  })
+
+  it('avisa cuando entre dos partes hay minutos sin grabar', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    durations.set('DR0000_0001.wav', 600)
+    durations.set('DR0000_0002.wav', 600)
+    await drop(['DR0000_0001.wav'], Date.parse('2026-11-10T15:00:00.000Z'))
+    await drop(['DR0000_0002.wav'], Date.parse('2026-11-10T15:14:00.000Z'))
+
+    expect(screen.getByText(/4 min sin grabar/)).toBeInTheDocument()
+  })
+
+  it('descartar una grabación se lleva todas sus partes', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    durations.set('DR0000_0001.wav', 600)
+    durations.set('DR0000_0002.wav', 600)
+    await drop(['DR0000_0001.wav', 'DR0000_0002.wav'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar de la lista' }))
+
+    expect(screen.queryByText('DR0000_0001.wav')).not.toBeInTheDocument()
+    expect(screen.queryByText('DR0000_0002.wav')).not.toBeInTheDocument()
+  })
+
+  it('los archivos con la convención del estudio siguen sueltos', async () => {
+    render(<MediaSection studyId="e1" sessions={SESSIONS} files={[]} />)
+    await drop(['d1b1-mic1.wav', 'd1b1-mic3.wav'])
+
+    // Dos desplegables: son dos micrófonos distintos, no dos partes de uno.
+    expect(screen.getAllByLabelText('Elegir bloque')).toHaveLength(2)
   })
 })

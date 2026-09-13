@@ -276,6 +276,36 @@ Consecuencias que hay que sostener:
 
 ---
 
+## D21 — Las partes no se pegan; se ordenan · `Propuesta`
+
+Los equipos cortan las grabaciones: el Insta360 segmenta el 360 y la grabadora parte
+el audio al llegar al límite de tamaño, o cuando alguien la detiene entre ejercicios.
+El modelo asumía un archivo por fuente y no es cierto.
+
+Las partes suben tal cual. Lo que se guarda es a qué grabación pertenece cada una y
+en qué orden (`recording_key`, `part_number`, `recorded_at`), y la transcripción las
+recorre en secuencia desplazando los tiempos. Pegar los WAV significaría mover
+gigabytes dos veces para producir un archivo que se usa una vez.
+
+El video 360 es la excepción: ya se transcodifica de todos modos (D19), así que unir
+los segmentos es un argumento más del mismo `ffmpeg` y no un viaje extra de datos.
+
+Dos consecuencias que hay que sostener:
+
+- **Los desfases salen del reloj, no de la suma.** Sumar duraciones da por sentado que
+  no hubo pausas, y a veces las hubo. Cada parte guarda cuándo se capturó; cuando la
+  distancia real no coincide con la suma, **se muestra cuánto tiempo falta** en vez de
+  esconderlo dentro del cálculo. Sin reloj utilizable se cae a la suma y se dice.
+- **El agrupador propone, la persona confirma.** Juntar dos grabaciones distintas bajo
+  un mismo invitado corrompe la atribución de forma invisible, que es la peor clase de
+  error en este sistema. Por eso dos tomas de una Zoom nunca se unen solas: `ZOOM0001`
+  puede ser la mañana y `ZOOM0002` la tarde.
+
+Detalle completo, con las familias de nombres reconocidas:
+[plans/2026-09-13-grabaciones-en-partes.md](plans/2026-09-13-grabaciones-en-partes.md)
+
+---
+
 ## Pendiente de decidir
 
 | Tema | Por qué aún no |

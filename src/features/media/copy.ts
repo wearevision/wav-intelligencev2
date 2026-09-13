@@ -2,8 +2,11 @@ import type { MatchReason, MediaKind } from './model'
 
 export const mediaCopy = {
   title: 'Material',
-  hint: 'Suelta el audio y el video de cada bloque. Se emparejan por el código del nombre.',
+  hint: 'Suelta el audio y el video de cada bloque. Las partes de una misma grabación se agrupan solas.',
   drop: 'Soltar archivos aquí',
+  reading: 'Leyendo los archivos…',
+  parts: 'Grabación en partes',
+  partsSuffix: 'partes',
   browse: 'o elegir del disco',
   pending: 'Por subir',
   tray: 'Sin bloque asignado',

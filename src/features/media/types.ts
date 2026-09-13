@@ -13,6 +13,11 @@ export interface MediaFile {
   /** Dónde quedó el master que nunca subió (D19). */
   sourcePath: string | null
   sourceHost: string | null
+  /** Qué grabación, cuando el archivo es una parte de una más larga. */
+  recordingKey: string | null
+  partNumber: number | null
+  /** Cuándo se capturó. De acá salen los desfases entre partes. */
+  recordedAt: string | null
   createdAt: string
 }
 
@@ -41,4 +46,8 @@ export interface RegisterInput {
   kind: MediaKind
   micNumber: number | null
   bytes: number
+  recordingKey?: string | null
+  partNumber?: number | null
+  recordedAt?: string | null
+  durationSeconds?: number | null
 }

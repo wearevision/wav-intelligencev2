@@ -83,6 +83,17 @@ extensión, el códec y el nombre, y siempre es corregible antes de subir.
 | DSLR | HLS | 1920×1080 |
 | Audio | Se sube tal cual | — |
 
+**Pendiente de este diseño: las grabaciones vienen cortadas.** Un Insta360 entrega
+`VID_20261110_130000_00_001.insv`, `_002`, `_003`. Este documento asumía un archivo
+por fuente. Como el video se transcodifica igual, unir los segmentos es un argumento
+más del mismo `ffmpeg` —`concat` sobre la lista ordenada— y no un viaje extra de
+datos; pero hay que agruparlos antes, y agrupar mal significaría pegar dos tomas
+distintas. Las reglas están en
+[2026-09-13-grabaciones-en-partes.md](2026-09-13-grabaciones-en-partes.md); acá falta
+implementarlas.
+
+El audio **no** se une: sube en partes y la app las ordena (D21).
+
 El original **no se toca ni se mueve**. Se registra su ruta y el equipo o disco
 donde quedó (`source_path`, `source_host` en `media_files`), porque con D19 el
 master nunca sale de la máquina y sin esa anotación se vuelve inencontrable.

@@ -156,6 +156,17 @@ cascada al borrar, y qué ve cada rol.
 El runner es la propia app por ahora. Trigger.dev entra cuando un paso dure lo
 suficiente como para no poder correr dentro de un request; los dos actuales no.
 
+**Grabaciones en partes (D21).** Los equipos cortan: el Insta360 segmenta el 360
+y la grabadora parte el audio. `media_files` gana `recording_key`, `part_number`
+y `recorded_at`; la cola de subida agrupa las partes en una sola fila con un
+solo bloque, y el plan de transcripción las entrega ordenadas con su desfase.
+Los huecos —minutos que alguien no grabó— se cuentan en pantalla en vez de
+esconderse dentro de una suma de duraciones.
+[Diseño](plans/2026-09-13-grabaciones-en-partes.md).
+
+Falta el lado de escritorio también acá: unir los segmentos del 360 es de WAV
+Ingest y su diseño v3 todavía no lo contempla.
+
 **Entregable:** subir la grabación de una sesión real y leer su transcripción.
 
 **Cierre:** un paso que falla se re-corre solo, sin repetir los ya completados.
