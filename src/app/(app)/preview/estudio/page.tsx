@@ -7,6 +7,7 @@ import {
   previewParticipants,
   previewPipelines,
   previewSessions,
+  previewTranscripts,
   previewStudies,
 } from '../fixtures'
 
@@ -20,5 +21,6 @@ export default function PreviewStudyPage() {
       media={previewMedia()}
       participants={previewParticipants()}
       pipelines={previewPipelines()}
+      transcripts={previewTranscripts()}
       today={today} />
 }

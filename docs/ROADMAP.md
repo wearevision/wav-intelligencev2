@@ -4,7 +4,7 @@ Cada fase cierra con algo **demostrable en pantalla**, no con "el módulo X est�
 El orden sigue el valor para quien coordina: primero saber en qué estado está todo,
 después automatizar los tramos.
 
-Estado: `F0` · `F1` · `F2` · `F3` · `F5` · `F6a` · `F6b` cerradas · `F6c · Transcripción` es lo siguiente.
+Estado: `F0` · `F1` · `F2` · `F3` · `F5` · `F6a` · `F6b` cerradas · `F6c` en curso.
 `F4 · Convocatoria` queda pendiente y no bloquea a F6.
 
 Requisitos confirmados: [SPEC.md](SPEC.md). Despliegue diferido — la app corre local

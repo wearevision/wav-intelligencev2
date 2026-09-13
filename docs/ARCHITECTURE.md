@@ -330,10 +330,38 @@ Dos consecuencias:
 
 ---
 
+## D23 — La transcripción se produce en local y la app la ingesta · `Propuesta`
+
+Es D19 aplicado a la transcripción. Un bloque son 2,4 GB de WAV que **ya están en el
+disco del operador**; subirlos otra vez a una API, en trozos de 25 MB, cuesta más
+tiempo y más plata que correr el modelo ahí mismo. WAV Ingest ya tiene whisper.cpp.
+
+La app no transcribe: **ingesta un artifact** `transcript_json` y lo convierte en
+verbatims. El paso `transcribir` existe igual y se salta solo cuando el artifact está
+(D20); mientras no exista el lado de escritorio, falla nombrando qué falta, que es
+mejor que una cadena que termina en verde sin transcripción.
+
+El contrato está versionado y se valida al leerlo. Dos decisiones dentro de él:
+
+- **Los tiempos de cada fuente son relativos a esa fuente**, y cada fuente declara
+  cuándo empezó a grabar en absoluto. La app calcula el cero del bloque —la primera
+  grabadora que arrancó— y desplaza el resto. En un bloque real una empieza 21:26 y
+  otra 22:10; sin la hora absoluta las dos parecerían empezar en el mismo instante y
+  la conversación quedaría superpuesta.
+- **La atribución la hace la app, no el transcriptor.** El artifact dice de qué
+  micrófono es cada pista; el nombre sale de cruzar ese número con el listado de
+  participantes. Quien transcribe no sabe —ni tiene por qué saber— quién llevaba el
+  micrófono 3.
+
+Queda abierto el camino de nube como respaldo, para material que llegue sin pasar por
+el escritorio. Es un adaptador detrás del mismo paso, no otra arquitectura.
+
+---
+
 ## Pendiente de decidir
 
 | Tema | Por qué aún no |
 |---|---|
 | Notificaciones fuera de la app (correo, WhatsApp) | Primero ver si la torre de control alcanza sola |
-| Proveedor de transcripción | Se mide con audio real cuando llegue la etapa |
+| Proveedor de nube como respaldo | El camino local (D23) cubre el caso real; el respaldo se elige cuando aparezca material que no pase por el escritorio |
 | Hosting | Vercel por defecto salvo que el pipeline pida otra cosa |

@@ -5,6 +5,8 @@ import { MediaSection } from '@/features/media/components/media-section'
 import type { Participant } from '@/features/participants'
 import { ParticipantsSection } from '@/features/participants/components/participants-section'
 import type { SessionPipeline } from '@/features/pipeline'
+import type { BlockTranscriptSummary } from '@/features/transcripts'
+import { TranscriptSection } from '@/features/transcripts/components/transcript-section'
 import { PipelineSection } from '@/features/pipeline/components/pipeline-section'
 import { SessionsSection } from '@/features/sessions/components/sessions-section'
 import type { StudySession } from '@/features/sessions'
@@ -25,6 +27,7 @@ export function StudyDetailView({
   media,
   participants,
   pipelines,
+  transcripts,
   today,
 }: {
   study: Study
@@ -32,6 +35,7 @@ export function StudyDetailView({
   media: readonly MediaFile[]
   participants: readonly Participant[]
   pipelines: readonly SessionPipeline[]
+  transcripts: readonly BlockTranscriptSummary[]
   today: Date
 }) {
   const current = currentStage(study.stages)
@@ -93,6 +97,10 @@ export function StudyDetailView({
 
       {sessions.length > 0 && (
         <PipelineSection studyId={study.id} blocks={blocks} pipelines={pipelines} />
+      )}
+
+      {sessions.length > 0 && (
+        <TranscriptSection studyId={study.id} blocks={blocks} summaries={transcripts} />
       )}
 
       <section className="flex flex-col gap-3">

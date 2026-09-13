@@ -1,6 +1,7 @@
 import type { MediaFile } from '@/features/media'
 import type { Participant } from '@/features/participants'
 import type { SessionPipeline } from '@/features/pipeline'
+import type { BlockTranscriptSummary } from '@/features/transcripts'
 import type { StudySession } from '@/features/sessions'
 import type { Study, StudyStage } from '@/features/studies'
 
@@ -333,5 +334,13 @@ export function previewParticipants(): Participant[] {
       ['Rodrigo Ávila', null, 'brand_staff'],
     ]),
     ...en('s-d1b2', [['Carolina Reyes', 1, 'moderator']]),
+  ]
+}
+
+/** Un bloque transcrito con dos voces sin identificar; el resto vacío. */
+export function previewTranscripts(): BlockTranscriptSummary[] {
+  return [
+    { sessionId: 's-d1b1', segments: 412, unattributed: 27 },
+    { sessionId: 's-d1b2', segments: 0, unattributed: 0 },
   ]
 }

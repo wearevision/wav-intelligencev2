@@ -481,6 +481,44 @@ export type Database = {
           template_stage_id?: string
         }
       }
+      verbatims: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          end_ts: number
+          id: string
+          media_file_id: string | null
+          participant_id: string | null
+          session_id: string
+          speaker_label: string | null
+          start_ts: number
+          text: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          end_ts: number
+          id?: string
+          media_file_id?: string | null
+          participant_id?: string | null
+          session_id: string
+          speaker_label?: string | null
+          start_ts: number
+          text: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          end_ts?: number
+          id?: string
+          media_file_id?: string | null
+          participant_id?: string | null
+          session_id?: string
+          speaker_label?: string | null
+          start_ts?: number
+          text?: string
+        }
+      }
     }>
     Views: Record<never, never>
     Functions: {

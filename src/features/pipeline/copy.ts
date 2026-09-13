@@ -34,8 +34,9 @@ export const stepStatusLabels: Record<StepStatus, string> = {
 export const artifactLabels: Record<string, string> = {
   session_inventory: 'Inventario',
   transcription_plan: 'Plan de transcripción',
-  hls_manifest: 'Video para reproducir',
   transcript_json: 'Transcripción',
+  verbatims_index: 'Verbatims',
+  hls_manifest: 'Video para reproducir',
   waveform: 'Onda de audio',
 }
 

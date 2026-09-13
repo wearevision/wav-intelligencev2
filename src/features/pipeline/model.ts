@@ -23,8 +23,9 @@ export type ArtifactProducer = 'local' | 'cloud'
 export type ArtifactKind =
   | 'session_inventory'
   | 'transcription_plan'
-  | 'hls_manifest'
   | 'transcript_json'
+  | 'verbatims_index'
+  | 'hls_manifest'
   | 'waveform'
 
 export interface ArtifactRef {
@@ -70,6 +71,24 @@ export const STEPS: readonly StepDefinition[] = [
     label: 'Plan de transcripción',
     produces: 'transcription_plan',
     requires: ['session_inventory'],
+  },
+  {
+    name: 'transcribir',
+    position: 3,
+    label: 'Transcripción',
+    produces: 'transcript_json',
+    requires: ['transcription_plan'],
+  },
+  {
+    // Escribe en la base, pero deja igual su artifact: es el acuse de que los
+    // verbatims se escribieron. Sin él la regla de D20 no aplicaría a este paso
+    // y habría que preguntarle a la base "¿ya está hecho?", que es justo el if
+    // disperso que el casillero evita.
+    name: 'atribuir',
+    position: 4,
+    label: 'Atribución',
+    produces: 'verbatims_index',
+    requires: ['transcript_json', 'transcription_plan'],
   },
 ] as const
 

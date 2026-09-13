@@ -1,5 +1,7 @@
 // Solo-servidor: escribe en R2 y lee la base. Se importa desde ./server.
 import { computeOffsets } from '@/features/media/parts'
+import { parseTranscriptArtifact } from '@/features/transcripts/contract'
+import { statsFor, toVerbatims, type PartRef } from '@/features/transcripts/model'
 
 import { artifactKey } from '@/server/storage/keys'
 import { storage } from '@/server/storage/r2'
@@ -278,7 +280,145 @@ const runTranscriptionPlan: StepRunner = async (ctx) => {
   })
 }
 
+/**
+ * Paso 3 · Transcripción.
+ *
+ * La app no transcribe. El audio de un bloque son gigas que ya están en el
+ * disco del operador, y volver a subirlos a una API en trozos cuesta más que
+ * correr el modelo ahí mismo (D19, D23). WAV Ingest publica el artifact y este
+ * paso se salta solo.
+ *
+ * Mientras ese lado no exista, el paso falla diciendo exactamente qué falta.
+ * Es preferible a un paso que no está: así la cadena nombra el hueco en vez de
+ * terminar en verde sin transcripción.
+ */
+const runTranscribe: StepRunner = async () => {
+  throw new Error(
+    'Todavía no hay transcripción para este bloque. La produce WAV Ingest en local ' +
+      'y la publica como artifact; la app no transcribe en la nube.',
+  )
+}
+
+/** La clave del artifact ya publicado, sea quien sea que lo haya dejado. */
+async function artifactKeyFor(ctx: StepContext, kind: string): Promise<string | null> {
+  const { data } = await ctx.supabase
+    .from('artifacts')
+    .select('storage_key')
+    .eq('session_id', ctx.sessionId)
+    .eq('kind', kind)
+    .maybeSingle()
+  return data?.storage_key ?? null
+}
+
+/**
+ * Paso 4 · Atribución.
+ *
+ * Lee la transcripción, alinea los tiempos contra el inicio del bloque y le
+ * pone nombre a quien habla cruzando el número de micrófono con el listado de
+ * participantes. Escribe verbatims.
+ *
+ * Su artifact es el acuse: existe si y solo si los verbatims quedaron escritos.
+ */
+const runAttribute: StepRunner = async (ctx) => {
+  const key = await artifactKeyFor(ctx, 'transcript_json')
+  if (!key) throw new Error('No hay artifact de transcripción para este bloque.')
+
+  const artifact = parseTranscriptArtifact(await storage.getText(key))
+
+  const [{ data: participants, error: peopleError }, { data: files, error: filesError }] =
+    await Promise.all([
+      ctx.supabase
+        .from('participants')
+        .select('id, mic_number')
+        .eq('session_id', ctx.sessionId),
+      ctx.supabase
+        .from('media_files')
+        .select('id, recording_key, part_number, duration_seconds, recorded_at')
+        .eq('session_id', ctx.sessionId),
+    ])
+
+  if (peopleError) throw new Error(`No se pudieron leer los participantes: ${peopleError.message}`)
+  if (filesError) throw new Error(`No se pudo leer el material: ${filesError.message}`)
+
+  const participantByMic = new Map<number, string>()
+  for (const person of participants ?? []) {
+    if (person.mic_number !== null) participantByMic.set(person.mic_number, person.id)
+  }
+
+  // Las partes de cada grabación, con su desfase dentro de ella: es lo que
+  // permite decir de qué archivo salió cada tramo.
+  const grouped = new Map<string, typeof files>()
+  for (const file of files ?? []) {
+    if (!file.recording_key) continue
+    const list = grouped.get(file.recording_key)
+    if (list) list.push(file)
+    else grouped.set(file.recording_key, [file])
+  }
+
+  const partsByRecording = new Map<string, PartRef[]>()
+  for (const [recordingKey, list] of grouped) {
+    list!.sort((a, b) => (a.part_number ?? 0) - (b.part_number ?? 0))
+    const { offsets } = computeOffsets(
+      list!.map((f) => ({
+        filename: f.id,
+        startsAt: f.recorded_at ? new Date(f.recorded_at) : null,
+        durationSeconds: f.duration_seconds,
+      })),
+    )
+    partsByRecording.set(
+      recordingKey,
+      list!.map((file, i) => ({
+        mediaFileId: file.id,
+        offsetSeconds: offsets[i] ?? 0,
+        durationSeconds: file.duration_seconds,
+      })),
+    )
+  }
+
+  const drafts = toVerbatims(artifact, { participantByMic, partsByRecording })
+  if (drafts.length === 0) throw new Error('La transcripción no trajo ningún segmento.')
+
+  // Borrar antes de insertar: re-correr el paso reemplaza la transcripción en
+  // vez de duplicarla. Es la contracara de que descartar el artifact sea la
+  // forma de pedir que se rehaga.
+  const { error: clearError } = await ctx.supabase
+    .from('verbatims')
+    .delete()
+    .eq('session_id', ctx.sessionId)
+  if (clearError) throw new Error(`No se pudo limpiar lo anterior: ${clearError.message}`)
+
+  // En tandas: un bloque de tres horas son miles de segmentos y un insert
+  // único se pasa del límite de tamaño del request.
+  const BATCH = 500
+  for (let i = 0; i < drafts.length; i += BATCH) {
+    const { error } = await ctx.supabase.from('verbatims').insert(
+      drafts.slice(i, i + BATCH).map((draft) => ({
+        session_id: ctx.sessionId,
+        participant_id: draft.participantId,
+        speaker_label: draft.speakerLabel,
+        start_ts: draft.startTs,
+        end_ts: draft.endTs,
+        text: draft.text,
+        confidence: draft.confidence,
+        media_file_id: draft.mediaFileId,
+      })),
+    )
+    if (error) throw new Error(`No se pudieron escribir los verbatims: ${error.message}`)
+  }
+
+  return writeArtifact(ctx, 'verbatims_index', {
+    version: 1,
+    sessionId: ctx.sessionId,
+    generatedAt: new Date().toISOString(),
+    producer: artifact.producer,
+    language: artifact.language,
+    ...statsFor(drafts),
+  })
+}
+
 export const RUNNERS: Record<string, StepRunner> = {
   inventario: runInventory,
   plan_transcripcion: runTranscriptionPlan,
+  transcribir: runTranscribe,
+  atribuir: runAttribute,
 }
