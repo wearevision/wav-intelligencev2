@@ -35,6 +35,17 @@ export interface AttributionContext {
   participantByMic: ReadonlyMap<number, string>
   /** Clave de grabación → sus partes en orden. */
   partsByRecording: ReadonlyMap<string, readonly PartRef[]>
+  /**
+   * Micrófono → el archivo entero de esa pista, cuando no vino en partes.
+   *
+   * Sin esto, un bloque cuyo audio no se cortó —el caso normal en una sesión
+   * corta— produce verbatims sin archivo asociado, y el reproductor no tiene a
+   * dónde saltar. Se resuelve por micrófono porque es lo único que identifica
+   * una pista sin clave de grabación; una mezcla de sala no lleva número y
+   * queda sin archivo, que es lo correcto cuando hay más de una y no se puede
+   * distinguir.
+   */
+  wholeFileByMic?: ReadonlyMap<number, string>
 }
 
 /**
@@ -112,6 +123,13 @@ export function toVerbatims(
       ? (context.partsByRecording.get(source.recordingKey) ?? [])
       : []
 
+    // Una fuente sin clave de grabación es un archivo entero: su archivo no se
+    // resuelve por desfase porque no hay partes que recorrer.
+    const wholeFile =
+      !source.recordingKey && source.micNumber !== null && source.micNumber !== undefined
+        ? (context.wholeFileByMic?.get(source.micNumber) ?? null)
+        : null
+
     // Cuando la fuente dice qué parte es, el archivo se sabe sin calcular nada.
     // El desfase solo hace falta cuando el productor mandó la grabación entera
     // como una sola fuente.
@@ -130,7 +148,7 @@ export function toVerbatims(
         endTs: round(offset + segment.end),
         text: segment.text,
         confidence: segment.confidence ?? null,
-        mediaFileId: declaredPart ?? resolvePart(segment.start, parts),
+        mediaFileId: declaredPart ?? wholeFile ?? resolvePart(segment.start, parts),
       })
     }
   }

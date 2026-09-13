@@ -338,7 +338,7 @@ const runAttribute: StepRunner = async (ctx) => {
         .eq('session_id', ctx.sessionId),
       ctx.supabase
         .from('media_files')
-        .select('id, recording_key, part_number, duration_seconds, recorded_at')
+        .select('id, recording_key, part_number, duration_seconds, recorded_at, mic_number')
         .eq('session_id', ctx.sessionId),
     ])
 
@@ -381,7 +381,23 @@ const runAttribute: StepRunner = async (ctx) => {
     )
   }
 
-  const drafts = toVerbatims(artifact, { participantByMic, partsByRecording })
+  // Los archivos enteros —sin clave de grabación— se resuelven por micrófono.
+  // Solo cuando hay uno solo por micrófono: con dos, cualquiera de los dos
+  // sería una adivinanza, y una adivinanza acá manda el reproductor al archivo
+  // equivocado sin que nada lo delate.
+  const wholeByMic = new Map<number, string[]>()
+  for (const file of files ?? []) {
+    if (file.recording_key || file.mic_number === null) continue
+    const list = wholeByMic.get(file.mic_number)
+    if (list) list.push(file.id)
+    else wholeByMic.set(file.mic_number, [file.id])
+  }
+  const wholeFileByMic = new Map<number, string>()
+  for (const [mic, ids] of wholeByMic) {
+    if (ids.length === 1) wholeFileByMic.set(mic, ids[0]!)
+  }
+
+  const drafts = toVerbatims(artifact, { participantByMic, partsByRecording, wholeFileByMic })
   if (drafts.length === 0) throw new Error('La transcripción no trajo ningún segmento.')
 
   // Borrar antes de insertar: re-correr el paso reemplaza la transcripción en

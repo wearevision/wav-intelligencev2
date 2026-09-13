@@ -277,3 +277,49 @@ describe('toVerbatims · la fuente declara qué parte es', () => {
     expect(verbatim!.mediaFileId).toBe('f1')
   })
 })
+
+describe('toVerbatims · el archivo entero', () => {
+  it('una pista sin partes resuelve su archivo por micrófono', () => {
+    // Es el caso normal en una sesión corta: nada se cortó, así que no hay
+    // partes que recorrer. Sin esto el verbatim queda sin archivo y el
+    // reproductor no tiene a dónde saltar.
+    const drafts = toVerbatims(artifact([source({ recordingKey: null, micNumber: 3 })]), {
+      ...CONTEXT,
+      wholeFileByMic: new Map([[3, 'archivo-mic-3']]),
+    })
+
+    expect(drafts[0]!.mediaFileId).toBe('archivo-mic-3')
+    expect(drafts[0]!.participantId).toBe('p-paula')
+  })
+
+  it('una mezcla de sala no lleva micrófono y queda sin archivo', () => {
+    // Correcto: con dos mezclas de sala, elegir una sería una adivinanza que
+    // manda al reproductor al archivo equivocado sin que nada lo delate.
+    const drafts = toVerbatims(
+      artifact([source({ recordingKey: null, micNumber: null })]),
+      { ...CONTEXT, wholeFileByMic: new Map([[3, 'archivo-mic-3']]) },
+    )
+
+    expect(drafts[0]!.mediaFileId).toBeNull()
+  })
+
+  it('la parte declarada manda sobre el archivo entero', () => {
+    const drafts = toVerbatims(artifact([source({ recordingKey: 'grabacion-a', partNumber: 2 })]), {
+      ...CONTEXT,
+      partsByRecording: new Map<string, PartRef[]>([
+        ['grabacion-a', [
+          { mediaFileId: 'parte-1', partNumber: 1, offsetSeconds: 0, durationSeconds: 1800 },
+          { mediaFileId: 'parte-2', partNumber: 2, offsetSeconds: 1800, durationSeconds: 900 },
+        ]],
+      ]),
+      wholeFileByMic: new Map([[3, 'archivo-mic-3']]),
+    })
+
+    expect(drafts[0]!.mediaFileId).toBe('parte-2')
+  })
+
+  it('sin el mapa se comporta como antes: no se inventa un archivo', () => {
+    const drafts = toVerbatims(artifact([source({ recordingKey: null, micNumber: 3 })]), CONTEXT)
+    expect(drafts[0]!.mediaFileId).toBeNull()
+  })
+})
