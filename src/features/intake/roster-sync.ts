@@ -87,6 +87,13 @@ export function planRosterSync(input: RosterSyncInput): RosterSyncPlan {
   for (const day of input.days) {
     for (const w of day.warnings) warnings.push(`${day.title}: ${w}`)
     if (day.blockLabels.length === 0) continue
+    if (day.absent > 0) {
+      warnings.push(
+        day.absent === 1
+          ? `${day.title}: 1 no asistió y no entra.`
+          : `${day.title}: ${day.absent} no asistieron y no entran.`,
+      )
+    }
     const date = sheetDate(day.title, input.year)
     if (!date)
       return {

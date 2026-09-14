@@ -174,6 +174,23 @@ describe('planRosterSync', () => {
     expect(plan.warnings).toContain('Junio 2: Freddy: no se pudo leer el micrófono.')
   })
 
+  it('avisa cuántos no asistieron en cada hoja con bloques', () => {
+    const plan = planRosterSync({
+      days: [
+        { ...day('Junio 2', []), absent: 3 },
+        { ...day('Junio 3', []), absent: 1 },
+        day('Junio 4', []),
+      ],
+      year: 2026,
+      sessions: [],
+      participants: [],
+    })
+    if (!plan.ok) throw new Error(plan.error)
+    expect(plan.warnings).toContain('Junio 2: 3 no asistieron y no entran.')
+    expect(plan.warnings).toContain('Junio 3: 1 no asistió y no entra.')
+    expect(plan.warnings.some((w) => w.startsWith('Junio 4'))).toBe(false)
+  })
+
   it('se niega cuando una hoja con bloques no trae una fecha legible', () => {
     expect(
       planRosterSync({ days: [day('Hoja1', [])], year: 2026, sessions: [], participants: [] }),
