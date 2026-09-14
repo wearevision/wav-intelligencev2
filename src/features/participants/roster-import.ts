@@ -63,11 +63,7 @@ function text(cell: Cell): string {
 
 /** Sin tildes y en minúsculas, para comparar encabezados escritos a mano. */
 function fold(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim()
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 }
 
 const ROLE_BY_LABEL: [RegExp, ParticipantRole][] = [
@@ -279,7 +275,10 @@ function parseSheet(sheet: SheetInput, dayNumber: number): ImportedDay {
         warnings.push(`${name}: no se entendió el segmento («${raw}»). Entra sin segmento.`)
       }
     }
-    const mic = columns.mic === null ? { byBlock: new Map(), note: null } : readMic(row[columns.mic], blockLabels.length)
+    const mic =
+      columns.mic === null
+        ? { byBlock: new Map(), note: null }
+        : readMic(row[columns.mic], blockLabels.length)
 
     if (mic.note !== null) {
       warnings.push(`${name}: no se pudo leer el micrófono («${mic.note}»). Entra sin asignar.`)

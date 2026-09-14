@@ -203,6 +203,24 @@ describe('parseRosterWorkbook', () => {
 })
 
 describe('parseRosterWorkbook · avisos', () => {
+  it('avisa del segmento que no reconoce y deja a la persona sin segmento', () => {
+    const hoja: SheetInput = {
+      title: 'Junio 2',
+      rows: [
+        ENCABEZADO,
+        fila('Ana Silva', 5, true, false, 'Quizás', 'ASISTIÓ', 'Entrevistado'),
+        fila('Bruno Pardo', 2, true, false, '', 'ASISTIÓ', 'Entrevistado'),
+      ],
+    }
+    const [dia] = parseRosterWorkbook([hoja])
+
+    expect(dia!.people.find((p) => p.name === 'Ana Silva')!.segment).toBeNull()
+    expect(dia!.warnings).toContain(
+      'Ana Silva: segmento «Quizás» no reconocido. Entra sin segmento.',
+    )
+    expect(dia!.warnings.some((w) => w.includes('Bruno Pardo'))).toBe(false)
+  })
+
   it('avisa del micrófono repetido dentro de un bloque y deja al segundo sin asignar', () => {
     const hoja: SheetInput = {
       title: 'Junio 2',
@@ -235,7 +253,15 @@ describe('parseRosterWorkbook · avisos', () => {
       title: 'Junio 2',
       rows: [
         ENCABEZADO,
-        fila('Ana Silva', 'se lo pasamos a otra a mitad', false, true, 'NO', 'ASISTIÓ', 'Entrevistado'),
+        fila(
+          'Ana Silva',
+          'se lo pasamos a otra a mitad',
+          false,
+          true,
+          'NO',
+          'ASISTIÓ',
+          'Entrevistado',
+        ),
       ],
     }
     const [dia] = parseRosterWorkbook([hoja])
