@@ -525,6 +525,10 @@ export type Database = {
     }>
     Views: Record<never, never>
     Functions: {
+      apply_roster_sync: {
+        Args: { p_plan: Json; p_study_id: string }
+        Returns: undefined
+      }
       create_study_from_template: {
         Args: {
           p_client_name?: string
