@@ -57,6 +57,24 @@ bruto.split('\n').forEach((linea, i) => {
     }
   }
   if (clave !== clave.trim()) problemas.push(`Línea ${i + 1}: la clave tiene espacios alrededor.`)
+
+  // Un carácter fuera del ASCII imprimible no entra en un encabezado HTTP, y
+  // la clave anónima viaja en uno. El caso real: copiar el valor ENMASCARADO
+  // del dashboard de Supabase, que muestra quince caracteres y el resto en
+  // viñetas «•». El error que provoca —«Cannot convert argument to a ByteString
+  // because the character at index 15 has a value of 8226»— llega mucho después
+  // y no menciona ni el archivo ni la variable.
+  for (const [indice, caracter] of [...valor].entries()) {
+    const codigo = caracter.codePointAt(0)
+    if (codigo < 0x20 || codigo > 0x7e) {
+      const nombre = caracter === '\u2022' ? 'una viñeta «•», del valor enmascarado del dashboard' : `«${caracter}» (código ${codigo})`
+      problemas.push(
+        `Línea ${i + 1}: «${clave}» tiene ${nombre} en la posición ${indice}. ` +
+          'Copia el valor completo, no el que el dashboard muestra tapado.',
+      )
+      break
+    }
+  }
   if (/^["'].*["']$/.test(valor)) problemas.push(`Línea ${i + 1}: «${clave}» tiene comillas; sobran.`)
 
   encontradas.set(clave.trim(), valor)
