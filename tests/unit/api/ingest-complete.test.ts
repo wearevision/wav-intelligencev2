@@ -21,7 +21,10 @@ function post(body: unknown) {
   } as unknown as Parameters<typeof POST>[0]
 }
 
-function supabaseWithSessions(ids: readonly string[]) {
+function supabaseWithSessions(
+  ids: readonly string[],
+  options: { reverseInsertedOrder?: boolean } = {},
+) {
   const insertedMedia: unknown[] = []
   const insertedBridge: unknown[] = []
   return {
@@ -44,11 +47,15 @@ function supabaseWithSessions(ids: readonly string[]) {
               insertedMedia.push(...rows)
               return {
                 select: () => ({
-                  then: (resolve: (v: unknown) => void) =>
-                    resolve({
-                      data: (rows as { session_id: string }[]).map((_, i) => ({ id: `media-${i}` })),
-                      error: null,
-                    }),
+                  then: (resolve: (v: unknown) => void) => {
+                    const typedRows = rows as { session_id: string; storage_key: string }[]
+                    const returned = typedRows.map((row, i) => ({
+                      id: `media-${i}`,
+                      storage_key: row.storage_key,
+                    }))
+                    if (options.reverseInsertedOrder) returned.reverse()
+                    resolve({ data: returned, error: null })
+                  },
                 }),
               }
             },
@@ -96,6 +103,43 @@ describe('extraSessionIds', () => {
 
     expect(res.status).toBe(200)
     expect(insertedBridge).toEqual([{ media_file_id: 'media-0', session_id: SESSION_B }])
+  })
+
+  it('vincula la sesión extra al media file correcto aunque el insert devuelva las filas en otro orden', async () => {
+    const KEY_2 = `studies/${STUDY}/d1b1/mic02.wav`
+    const { supabase, insertedBridge } = supabaseWithSessions([SESSION_A, SESSION_B], {
+      reverseInsertedOrder: true,
+    })
+    requireUser.mockResolvedValue({ user: { id: 'u1' }, supabase })
+
+    const res = await POST(
+      post({
+        studyId: STUDY,
+        media: [
+          {
+            sessionId: SESSION_A,
+            storageKey: KEY,
+            filename: 'mic01.wav',
+            kind: 'audio_mic',
+            bytes: 100,
+          },
+          {
+            sessionId: SESSION_A,
+            storageKey: KEY_2,
+            filename: 'mic02.wav',
+            kind: 'audio_mic',
+            bytes: 100,
+            extraSessionIds: [SESSION_B],
+          },
+        ],
+      }),
+    )
+
+    expect(res.status).toBe(200)
+    // El mock devuelve las filas insertadas en orden inverso al de mediaRows;
+    // el vínculo debe seguir aterrizando en el media file de KEY_2 (media-1),
+    // no en el de la posición 0.
+    expect(insertedBridge).toEqual([{ media_file_id: 'media-1', session_id: SESSION_B }])
   })
 
   it('rechaza una sesión extra que no es del estudio', async () => {

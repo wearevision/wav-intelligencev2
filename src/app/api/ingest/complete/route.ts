@@ -134,11 +134,12 @@ export async function POST(request: NextRequest) {
           source_host: m.sourceHost ?? null,
         })),
       )
-      .select('id')
+      .select('id, storage_key')
     if (insertError) return fail(insertError.message, request, 409)
 
-    const bridgeRows = mediaRows.flatMap((m, i) => {
-      const mediaId = inserted?.[i]?.id
+    const idByStorageKey = new Map((inserted ?? []).map((row) => [row.storage_key, row.id]))
+    const bridgeRows = mediaRows.flatMap((m) => {
+      const mediaId = idByStorageKey.get(m.storageKey)
       if (!mediaId || !m.extraSessionIds?.length) return []
       return m.extraSessionIds.map((sessionId) => ({
         media_file_id: mediaId,
