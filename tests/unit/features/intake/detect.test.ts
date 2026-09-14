@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { detectStudyFile } from '@/features/intake/detect'
+import { detectStudyFile, hasSurveySignature } from '@/features/intake/detect'
 import type { SheetInput } from '@/features/participants'
 
 const convocatoria: SheetInput = {
@@ -13,6 +13,13 @@ const formulario: SheetInput = {
   rows: [['Marca temporal', '¿Qué fue lo primero que te llamó la atención?']],
 }
 
+// Google Forms a veces exporta «Marca temporal» con un espacio duro (NBSP)
+// en vez de un espacio normal.
+const formularioConEspacioDuro: SheetInput = {
+  title: 'Respuestas de formulario 2',
+  rows: [['Marca temporal', '¿Qué fue lo primero que te llamó la atención?']],
+}
+
 describe('detectStudyFile', () => {
   it('reconoce la convocatoria por «Nombre» y las columnas de horario', () => {
     expect(detectStudyFile({ kind: 'xlsx', sheets: [convocatoria] })).toBe('roster')
@@ -20,6 +27,7 @@ describe('detectStudyFile', () => {
 
   it('reconoce las respuestas por «Marca temporal» en la primera celda', () => {
     expect(detectStudyFile({ kind: 'xlsx', sheets: [formulario] })).toBe('survey')
+    expect(detectStudyFile({ kind: 'xlsx', sheets: [formularioConEspacioDuro] })).toBe('survey')
   })
 
   it('reconoce la pauta como documento de Word', () => {
@@ -31,9 +39,15 @@ describe('detectStudyFile', () => {
       detectStudyFile({ kind: 'xlsx', sheets: [{ title: 'Hoja1', rows: [['a', 'b']] }] }),
     ).toBe('unknown')
     expect(detectStudyFile({ kind: 'unknown' })).toBe('unknown')
+    expect(detectStudyFile({ kind: 'xlsx', sheets: [] })).toBe('unknown')
   })
 
   it('prefiere la convocatoria si una planilla trae las dos formas', () => {
     expect(detectStudyFile({ kind: 'xlsx', sheets: [formulario, convocatoria] })).toBe('roster')
+  })
+
+  it('expone la firma del formulario para avisar cuando una convocatoria también la trae', () => {
+    expect(hasSurveySignature([formulario, convocatoria])).toBe(true)
+    expect(hasSurveySignature([convocatoria])).toBe(false)
   })
 })
