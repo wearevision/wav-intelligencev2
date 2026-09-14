@@ -10,3 +10,4 @@ export type {
   RosterSyncPlan,
   SyncPerson,
 } from './roster-sync'
+export { intakeCopy } from './copy'

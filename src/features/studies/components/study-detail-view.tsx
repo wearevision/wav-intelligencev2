@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { StudyFilesSection } from '@/features/intake/components/study-files-section'
 import type { MediaFile } from '@/features/media'
 import { MediaSection } from '@/features/media/components/media-section'
 import type { Participant } from '@/features/participants'
@@ -61,11 +62,11 @@ export function StudyDetailView({
   return (
     <div className="flex flex-col gap-10">
       <div>
-        <Link href="/studies" className="text-sm text-muted hover:text-ink">
+        <Link href="/studies" className="text-muted hover:text-ink text-sm">
           ← {studiesCopy.backToList}
         </Link>
         <h1 className="mt-3 text-2xl font-medium tracking-tight">{study.name}</h1>
-        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm text-muted">
+        <div className="text-muted mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
           {study.clientName ? <span>{study.clientName} ·</span> : null}
           <FieldworkEditor studyId={study.id} value={study.fieldworkStart} />
           <span>
@@ -75,14 +76,16 @@ export function StudyDetailView({
       </div>
 
       {current ? (
-        <section className="rounded-lg border border-accent bg-surface p-6">
-          <p className="text-sm text-muted">{studiesCopy.currentStage}</p>
+        <section className="border-accent bg-surface rounded-lg border p-6">
+          <p className="text-muted text-sm">{studiesCopy.currentStage}</p>
           <h2 className="mt-1 text-lg font-medium">{current.name}</h2>
           <StageDetail stage={current} studyId={study.id} today={today} />
         </section>
       ) : (
-        <p className="text-sm text-muted">{studiesCopy.finished}</p>
+        <p className="text-muted text-sm">{studiesCopy.finished}</p>
       )}
+
+      <StudyFilesSection studyId={study.id} />
 
       <SessionsSection studyId={study.id} sessions={sessions} />
 
@@ -109,15 +112,15 @@ export function StudyDetailView({
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted">{studiesCopy.stages}</h2>
+        <h2 className="text-muted text-sm font-medium">{studiesCopy.stages}</h2>
         <ol className="flex flex-col gap-2">
           {study.stages.map((stage) => (
             <li
               key={stage.id}
-              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-md border border-border bg-surface px-4 py-3"
+              className="border-border bg-surface flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-md border px-4 py-3"
             >
               <span className="flex items-baseline gap-3">
-                <span className="text-xs text-muted tabular-nums">{stage.position}</span>
+                <span className="text-muted text-xs tabular-nums">{stage.position}</span>
                 <span className="text-sm">{stage.name}</span>
               </span>
               <StageDue stage={stage} today={today} />
@@ -144,7 +147,7 @@ function StageDetail({
   return (
     <div className="mt-5 flex flex-col gap-5">
       {due ? (
-        <p className={due.overdue ? 'text-sm text-danger' : 'text-sm text-muted'}>
+        <p className={due.overdue ? 'text-danger text-sm' : 'text-muted text-sm'}>
           {dueLabel(due.days)}
         </p>
       ) : null}
@@ -165,15 +168,15 @@ function StageDetail({
         </ul>
       ) : null}
 
-      <div className="border-t border-border pt-4">
+      <div className="border-border border-t pt-4">
         {blockers.length === 0 ? (
-          <p className="mb-3 text-sm text-ok">{studiesCopy.noBlockers}</p>
+          <p className="text-ok mb-3 text-sm">{studiesCopy.noBlockers}</p>
         ) : (
           <>
-            <p className="text-sm text-muted">{studiesCopy.blockersTitle}</p>
+            <p className="text-muted text-sm">{studiesCopy.blockersTitle}</p>
             <ul className="mt-2 mb-3 flex flex-col gap-1">
               {blockers.map((blocker) => (
-                <li key={`${blocker.kind}-${blocker.label}`} className="text-sm text-warn">
+                <li key={`${blocker.kind}-${blocker.label}`} className="text-warn text-sm">
                   {blocker.label}
                 </li>
               ))}

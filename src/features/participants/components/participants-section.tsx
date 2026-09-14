@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useRef, useState, useTransition, type ChangeEvent, type FormEvent } from 'react'
+import { useState, useTransition, type FormEvent } from 'react'
 
 import { participantsCopy, roleLabels, roleNotes, segmentLabels } from '../copy'
 import {
@@ -14,14 +14,7 @@ import {
   summarize,
 } from '../model'
 import type { Participant, ParticipantRole, Segment } from '../types'
-import {
-  addParticipants,
-  importRoster,
-  previewRoster,
-  removeParticipant,
-  updateParticipant,
-  type RosterPreview,
-} from '../actions'
+import { addParticipants, removeParticipant, updateParticipant } from '../actions'
 
 /** Un bloque, con los micrófonos que de verdad se grabaron en él. */
 export interface ParticipantBlock {
@@ -50,11 +43,9 @@ export function ParticipantsSection({
   return (
     <section className="flex flex-col gap-3">
       <div>
-        <h2 className="text-sm font-medium text-muted">{participantsCopy.title}</h2>
-        <p className="mt-1 text-xs text-muted">{participantsCopy.hint}</p>
+        <h2 className="text-muted text-sm font-medium">{participantsCopy.title}</h2>
+        <p className="text-muted mt-1 text-xs">{participantsCopy.hint}</p>
       </div>
-
-      <RosterImport studyId={studyId} />
 
       <div className="flex flex-col gap-2">
         {blocks.map((block) => (
@@ -98,12 +89,12 @@ function BlockRoster({
   }
 
   return (
-    <div className="rounded-md border border-border bg-surface px-4 py-3">
+    <div className="border-border bg-surface rounded-md border px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="flex items-baseline gap-3">
-          <span className="text-xs text-muted tabular-nums">{block.code ?? block.name}</span>
+          <span className="text-muted text-xs tabular-nums">{block.code ?? block.name}</span>
           {total > 0 && (
-            <span className="text-xs text-muted">{participantsCopy.summary(total, analyzed)}</span>
+            <span className="text-muted text-xs">{participantsCopy.summary(total, analyzed)}</span>
           )}
         </span>
         <span className="flex items-baseline gap-3">
@@ -111,7 +102,7 @@ function BlockRoster({
             type="button"
             disabled={pending}
             onClick={() => setPasting((v) => !v)}
-            className="text-xs text-muted underline underline-offset-4 hover:text-ink disabled:opacity-40"
+            className="text-muted hover:text-ink text-xs underline underline-offset-4 disabled:opacity-40"
           >
             {participantsCopy.paste}
           </button>
@@ -125,7 +116,7 @@ function BlockRoster({
                 ]),
               )
             }
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink disabled:opacity-40"
+            className="bg-accent text-accent-ink rounded-md px-3 py-1.5 text-xs font-medium disabled:opacity-40"
           >
             {participantsCopy.add}
           </button>
@@ -145,7 +136,7 @@ function BlockRoster({
       )}
 
       {people.length === 0 ? (
-        <p className="mt-2 text-xs text-muted">{participantsCopy.empty}</p>
+        <p className="text-muted mt-2 text-xs">{participantsCopy.empty}</p>
       ) : (
         <ul className="mt-3 flex flex-col gap-2">
           {people.map((person) => (
@@ -162,17 +153,17 @@ function BlockRoster({
       )}
 
       {duplicates.length > 0 && (
-        <p className="mt-2 text-xs text-danger">{participantsCopy.duplicateMic(duplicates)}</p>
+        <p className="text-danger mt-2 text-xs">{participantsCopy.duplicateMic(duplicates)}</p>
       )}
       {unassignedMics.length > 0 && (
-        <p className="mt-2 text-xs text-warn">{participantsCopy.unassignedMics(unassignedMics)}</p>
+        <p className="text-warn mt-2 text-xs">{participantsCopy.unassignedMics(unassignedMics)}</p>
       )}
       {peopleWithoutTrack.length > 0 && (
-        <p className="mt-2 text-xs text-warn">
+        <p className="text-warn mt-2 text-xs">
           {participantsCopy.withoutTrack(peopleWithoutTrack.map((p) => p.name))}
         </p>
       )}
-      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+      {error && <p className="text-danger mt-2 text-xs">{error}</p>}
     </div>
   )
 }
@@ -207,7 +198,7 @@ function PersonRow({
           const value = e.target.value.trim()
           if (value !== '' && value !== person.name) onChange({ name: value })
         }}
-        className="min-w-40 flex-1 rounded-md border border-border bg-canvas px-2 py-1 text-sm outline-none focus:border-accent"
+        className="border-border bg-canvas focus:border-accent min-w-40 flex-1 rounded-md border px-2 py-1 text-sm outline-none"
       />
 
       <select
@@ -215,7 +206,7 @@ function PersonRow({
         aria-label={participantsCopy.mic}
         disabled={pending}
         onChange={(e) => onChange({ micNumber: e.target.value ? Number(e.target.value) : null })}
-        className={`rounded-md border bg-canvas px-2 py-1 text-xs tabular-nums outline-none focus:border-accent ${
+        className={`bg-canvas focus:border-accent rounded-md border px-2 py-1 text-xs tabular-nums outline-none ${
           duplicated ? 'border-danger text-danger' : 'border-border'
         }`}
       >
@@ -232,7 +223,7 @@ function PersonRow({
         aria-label={participantsCopy.role}
         disabled={pending}
         onChange={(e) => onChange({ role: e.target.value as ParticipantRole })}
-        className="rounded-md border border-border bg-canvas px-2 py-1 text-xs outline-none focus:border-accent"
+        className="border-border bg-canvas focus:border-accent rounded-md border px-2 py-1 text-xs outline-none"
       >
         {ROLES.map((role) => (
           <option key={role} value={role}>
@@ -249,7 +240,7 @@ function PersonRow({
           aria-label={participantsCopy.segment}
           disabled={pending}
           onChange={(e) => onChange({ segment: (e.target.value || null) as Segment | null })}
-          className="rounded-md border border-border bg-canvas px-2 py-1 text-xs outline-none focus:border-accent"
+          className="border-border bg-canvas focus:border-accent rounded-md border px-2 py-1 text-xs outline-none"
         >
           <option value="">{participantsCopy.segment}</option>
           {(Object.keys(segmentLabels) as Segment[]).map((value) => (
@@ -263,14 +254,14 @@ function PersonRow({
       {/* Que un rol quede fuera del análisis no debería descubrirse leyendo el
           informe: se dice en la misma fila donde se elige. */}
       {!countsInAnalysis(person.role) && (
-        <span className="text-xs text-muted">{roleNotes[person.role]}</span>
+        <span className="text-muted text-xs">{roleNotes[person.role]}</span>
       )}
 
       <button
         type="button"
         disabled={pending}
         onClick={onRemove}
-        className="text-xs text-muted underline underline-offset-4 hover:text-danger disabled:opacity-40"
+        className="text-muted hover:text-danger text-xs underline underline-offset-4 disabled:opacity-40"
       >
         {participantsCopy.remove}
       </button>
@@ -306,26 +297,31 @@ function PasteRoster({
   }
 
   return (
-    <form onSubmit={submit} className="mt-3 flex flex-col gap-2 rounded-md bg-canvas p-3">
-      <p className="text-xs text-muted">{participantsCopy.pasteHint}</p>
+    <form onSubmit={submit} className="bg-canvas mt-3 flex flex-col gap-2 rounded-md p-3">
+      <p className="text-muted text-xs">{participantsCopy.pasteHint}</p>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={5}
         aria-label={participantsCopy.paste}
-        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm outline-none focus:border-accent"
+        className="border-border bg-surface focus:border-accent rounded-md border px-2 py-1.5 text-sm outline-none"
       />
 
       {rows.length > 0 && (
         <div className="flex flex-col gap-1">
-          <p className="text-xs text-muted">
+          <p className="text-muted text-xs">
             {participantsCopy.pastePreview} ({rows.length})
           </p>
           <ul className="flex flex-col gap-0.5">
             {rows.map((row, i) => (
-              <li key={`${row.name}-${i}`} className="flex flex-wrap items-baseline gap-x-3 text-xs">
+              <li
+                key={`${row.name}-${i}`}
+                className="flex flex-wrap items-baseline gap-x-3 text-xs"
+              >
                 <span className="min-w-0 flex-1 truncate">{row.name}</span>
-                <span className={`tabular-nums ${taken.has(row.micNumber) ? 'text-danger' : 'text-muted'}`}>
+                <span
+                  className={`tabular-nums ${taken.has(row.micNumber) ? 'text-danger' : 'text-muted'}`}
+                >
                   {row.micNumber === null
                     ? participantsCopy.noMic
                     : `${participantsCopy.mic} ${row.micNumber}`}
@@ -341,190 +337,18 @@ function PasteRoster({
         <button
           type="submit"
           disabled={pending || rows.length === 0}
-          className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink disabled:opacity-40"
+          className="bg-accent text-accent-ink rounded-md px-3 py-1.5 text-xs font-medium disabled:opacity-40"
         >
           {pending ? participantsCopy.saving : participantsCopy.pasteConfirm}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+          className="text-muted hover:text-ink text-xs underline underline-offset-4"
         >
           {participantsCopy.cancel}
         </button>
       </div>
     </form>
-  )
-}
-
-/**
- * Importar la planilla de convocatoria.
- *
- * Se lee y se muestra qué entraría **antes** de escribir nada. No es cortesía:
- * la planilla trae decisiones tomadas a mano —un micrófono anotado como frase,
- * alguien que asistió sin bloque marcado— y meter cien personas para después
- * descubrirlo cuesta mucho más que mirarlo una vez.
- */
-function RosterImport({ studyId }: { studyId: string }) {
-  const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [open, setOpen] = useState(false)
-  const [preview, setPreview] = useState<RosterPreview | null>(null)
-  const [pending, startTransition] = useTransition()
-
-  function onPick(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-
-    startTransition(async () => {
-      const form = new FormData()
-      form.set('file', file)
-      setPreview(await previewRoster(studyId, form))
-    })
-  }
-
-  function confirm() {
-    if (!preview?.days || !preview.targets) return
-
-    const groups = preview.targets
-      .filter((target) => target.sessionId !== null)
-      .map((target) => ({
-        sessionId: target.sessionId as string,
-        people: preview
-          .days!.find((d) => d.dayNumber === target.dayNumber)!
-          .people.filter((p) => p.blockNumber === target.blockNumber)
-          .map((p) => ({
-            name: p.name,
-            micNumber: p.micNumber,
-            role: p.role,
-            segment: p.segment,
-          })),
-      }))
-      .filter((group) => group.people.length > 0)
-
-    startTransition(async () => {
-      const result = await importRoster(studyId, groups)
-      if (!result.ok) {
-        setPreview({ ok: false, message: result.message })
-        return
-      }
-      setPreview(null)
-      setOpen(false)
-      router.refresh()
-    })
-  }
-
-  const warnings = (preview?.days ?? []).flatMap((day) =>
-    day.warnings.map((text) => `${day.title}: ${text}`),
-  )
-  const absent = (preview?.days ?? []).reduce((sum, day) => sum + day.absent, 0)
-  const importable = (preview?.targets ?? []).filter((t) => t.sessionId !== null)
-
-  if (!open) {
-    return (
-      <div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-        >
-          {participantsCopy.importFile}
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
-      <p className="text-xs text-muted">{participantsCopy.importHint}</p>
-
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => inputRef.current?.click()}
-          className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink disabled:opacity-40"
-        >
-          {pending ? participantsCopy.importReading : participantsCopy.importChoose}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false)
-            setPreview(null)
-          }}
-          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-        >
-          {participantsCopy.cancel}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          hidden
-          accept=".xlsx,.xlsm"
-          aria-label={participantsCopy.importFile}
-          onChange={onPick}
-        />
-      </div>
-
-      {preview && !preview.ok && <p className="text-xs text-danger">{preview.message}</p>}
-
-      {preview?.ok && (
-        <div className="flex flex-col gap-2">
-          {importable.length === 0 ? (
-            <p className="text-xs text-warn">{participantsCopy.importNothing}</p>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {preview.targets!.map((target) => (
-                <li
-                  key={`${target.dayNumber}-${target.blockNumber}`}
-                  className="flex flex-wrap items-baseline gap-x-3 text-xs"
-                >
-                  <span className="text-muted tabular-nums">
-                    {target.code ?? `día ${target.dayNumber} · bloque ${target.blockNumber}`}
-                  </span>
-                  <span className="text-muted">{target.blockLabel}</span>
-                  <span>{participantsCopy.summary(target.people, target.people)}</span>
-                  {target.sessionId === null && (
-                    <span className="text-warn">{participantsCopy.importNoBlock}</span>
-                  )}
-                  {target.alreadyThere > 0 && (
-                    <span className="text-muted">
-                      {participantsCopy.importAlready(target.alreadyThere)}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {absent > 0 && <p className="text-xs text-muted">{participantsCopy.absent(absent)}</p>}
-
-          {warnings.length > 0 && (
-            <ul className="flex flex-col gap-0.5">
-              {warnings.map((text) => (
-                <li key={text} className="text-xs text-warn">
-                  {text}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {importable.length > 0 && (
-            <div>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={confirm}
-                className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink disabled:opacity-40"
-              >
-                {pending ? participantsCopy.saving : participantsCopy.importConfirm}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
   )
 }
