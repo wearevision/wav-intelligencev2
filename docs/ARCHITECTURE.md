@@ -405,6 +405,33 @@ de vuelta a empezar.
 
 ---
 
+## D26 — La convocatoria define los bloques y cada bloque refleja la planilla · `Propuesta`
+
+Subir la planilla de convocatoria crea los bloques que falten y corrige fecha y hora
+de los que ya existen: cada hoja es un día y cada columna de horario un bloque. Así
+no hace falta generar la agenda a mano antes, y la fecha real de terreno viene del
+mismo archivo que usó el equipo, no de un paso que alguien podía saltarse.
+
+En personas, cada bloque queda **igual a la planilla**: se actualiza a quien ya
+está, se agrega a quien falta y se borra a quien ya no aparece. Se prefirió al «solo
+agregar» de antes porque una corrección de micrófono en la planilla tiene que llegar
+a la plataforma, o la atribución de la transcripción queda mal sin que nada lo diga.
+
+Dos cosas que hay que sostener:
+
+- **Actualizar conserva la identidad.** Quien sigue en la planilla se modifica en su
+  fila, no se borra y se vuelve a crear: sus verbatims apuntan a ese `id` y perderían
+  el autor.
+- **La planilla nunca borra bloques.** Un bloque arrastra grabaciones, corridas y
+  transcripciones en cascada; que desaparezca porque una hoja se renombró sería
+  perder material irrepetible. Borrar gente se muestra en la vista previa con los
+  verbatims que quedarían sin autor; borrar un bloque no es algo que la planilla pueda
+  pedir.
+
+Diseño: [plans/2026-09-14-subida-archivos-estudio.md](plans/2026-09-14-subida-archivos-estudio.md).
+
+---
+
 ## Pendiente de decidir
 
 | Tema | Por qué aún no |
