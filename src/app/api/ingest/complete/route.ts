@@ -23,6 +23,7 @@ const mediaSchema = z.object({
   durationSeconds: z.number().int().min(0).nullish(),
   recordingKey: z.string().trim().min(1).max(200).nullish(),
   partNumber: z.number().int().min(1).max(999).nullish(),
+  extraSessionIds: z.array(z.uuid()).max(1).optional(),
   recordedAt: z.iso.datetime().nullish(),
   checksum: z.string().trim().min(1).max(200).nullish(),
   // Dónde quedó el master que nunca subió (D19). Sin esto, en dos años nadie
@@ -70,7 +71,12 @@ export async function POST(request: NextRequest) {
     return fail('No hay nada que registrar.', request, 400)
   }
 
-  const wanted = [...new Set([...media, ...artifacts].map((i) => i.sessionId))]
+  const wanted = [
+    ...new Set([
+      ...media.flatMap((m) => [m.sessionId, ...(m.extraSessionIds ?? [])]),
+      ...artifacts.map((a) => a.sessionId),
+    ]),
+  ]
   const { data: sessions, error } = await supabase
     .from('sessions')
     .select('id')
@@ -98,8 +104,10 @@ export async function POST(request: NextRequest) {
 
   const usable = new Set<string>()
   for (const { item, inStudy, exists } of presence) {
-    if (!inStudy) rejected.push({ storageKey: item.storageKey, reason: 'La clave no es de este estudio.' })
-    else if (!exists) rejected.push({ storageKey: item.storageKey, reason: 'El objeto no está en R2.' })
+    if (!inStudy)
+      rejected.push({ storageKey: item.storageKey, reason: 'La clave no es de este estudio.' })
+    else if (!exists)
+      rejected.push({ storageKey: item.storageKey, reason: 'El objeto no está en R2.' })
     else usable.add(item.storageKey)
   }
 
@@ -107,24 +115,40 @@ export async function POST(request: NextRequest) {
   const artifactRows = artifacts.filter((a) => usable.has(a.storageKey))
 
   if (mediaRows.length > 0) {
-    const { error: insertError } = await supabase.from('media_files').insert(
-      mediaRows.map((m) => ({
-        session_id: m.sessionId,
-        kind: m.kind,
-        storage_key: m.storageKey,
-        original_filename: m.filename,
-        bytes: m.bytes,
-        mic_number: m.kind === 'audio_mic' ? (m.micNumber ?? null) : null,
-        duration_seconds: m.durationSeconds ?? null,
-        recording_key: m.recordingKey ?? null,
-        part_number: m.partNumber ?? null,
-        recorded_at: m.recordedAt ?? null,
-        checksum: m.checksum ?? null,
-        source_path: m.sourcePath ?? null,
-        source_host: m.sourceHost ?? null,
-      })),
-    )
+    const { data: inserted, error: insertError } = await supabase
+      .from('media_files')
+      .insert(
+        mediaRows.map((m) => ({
+          session_id: m.sessionId,
+          kind: m.kind,
+          storage_key: m.storageKey,
+          original_filename: m.filename,
+          bytes: m.bytes,
+          mic_number: m.kind === 'audio_mic' ? (m.micNumber ?? null) : null,
+          duration_seconds: m.durationSeconds ?? null,
+          recording_key: m.recordingKey ?? null,
+          part_number: m.partNumber ?? null,
+          recorded_at: m.recordedAt ?? null,
+          checksum: m.checksum ?? null,
+          source_path: m.sourcePath ?? null,
+          source_host: m.sourceHost ?? null,
+        })),
+      )
+      .select('id')
     if (insertError) return fail(insertError.message, request, 409)
+
+    const bridgeRows = mediaRows.flatMap((m, i) => {
+      const mediaId = inserted?.[i]?.id
+      if (!mediaId || !m.extraSessionIds?.length) return []
+      return m.extraSessionIds.map((sessionId) => ({
+        media_file_id: mediaId,
+        session_id: sessionId,
+      }))
+    })
+    if (bridgeRows.length > 0) {
+      const { error: bridgeError } = await supabase.from('media_file_sessions').insert(bridgeRows)
+      if (bridgeError) return fail(bridgeError.message, request, 409)
+    }
   }
 
   for (const artifact of artifactRows) {
