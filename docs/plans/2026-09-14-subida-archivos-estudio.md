@@ -103,16 +103,18 @@ reconocido, asistencia «no asistió».
 ### 5 · Al confirmar, todo o nada
 
 Una función de Postgres (RPC, `security invoker`, respetando las policies de
-admin) recibe el plan ya calculado y lo aplica en una transacción: crea y
+admin) recibe el plan recalculado en el servidor y lo aplica en una transacción: crea y
 corrige bloques, borra, actualiza y agrega participantes. Si algo falla no
 queda un estudio a medio cargar. Después se guarda el archivo original como
 adjunto «Listado de invitados» de su etapa (si el adjunto falla, los datos ya
 quedaron y se avisa).
 
-El plan se **recalcula en el servidor** al confirmar, a partir del archivo y del
-estado actual, en vez de confiar en lo que devuelve el navegador: si otra
-persona cambió el estudio entre la vista previa y la confirmación, lo que se
-aplica es coherente con la base.
+El plan **no viaja desde el navegador**. Al confirmar, el componente vuelve a
+mandar el mismo archivo (lo tiene en memoria) y el servidor recalcula el plan
+contra el estado actual. La vista previa entregó una huella del plan (hash de su
+contenido); si el plan recalculado tiene otra huella —alguien cambió el estudio
+entre medio—, **no se aplica nada** y se devuelve la vista previa nueva para
+revisarla. Así nunca se borra a alguien que la persona no vio en la lista.
 
 ### 6 · Datos personales
 
@@ -129,7 +131,7 @@ original se guarda como adjunto de etapa, igual que hoy.
 | `parseRosterWorkbook` (existente) | pura, con tests | + fecha de la hoja, hora de cada bloque, normalización de nombre, micrófonos repetidos |
 | `planRosterSync` | pura, con tests | planilla + estado actual → bloques a crear/corregir, personas a agregar/actualizar/borrar, avisos |
 | RPC `apply_roster_sync` | migración | aplica el plan en una transacción |
-| acciones `previewStudyFiles` / `applyStudyFiles` | servidor | leer, clasificar, planificar; recalcular y aplicar |
+| acciones `previewStudyFiles` / `applyStudyFiles` | servidor | leer, clasificar, planificar y devolver la huella; recalcular, comparar huella y aplicar |
 | «Archivos del estudio» | componente | subida, vista previa, confirmar; reemplaza la importación actual de participantes |
 
 `planRosterSync` es donde está el riesgo (espejo exacto borra) y lleva la mayor
