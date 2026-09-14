@@ -54,6 +54,23 @@ export type Database = {
           storage_key?: string
         }
       }
+      media_file_sessions: {
+        Row: {
+          created_at: string
+          media_file_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          media_file_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          media_file_id?: string
+          session_id?: string
+        }
+      }
       media_files: {
         Row: {
           bytes: number | null
@@ -553,8 +570,7 @@ export type Database = {
 
 type DefaultSchema = Database['public']
 
-export type Tables<T extends keyof DefaultSchema['Tables']> =
-  DefaultSchema['Tables'][T]['Row']
+export type Tables<T extends keyof DefaultSchema['Tables']> = DefaultSchema['Tables'][T]['Row']
 export type TablesInsert<T extends keyof DefaultSchema['Tables']> =
   DefaultSchema['Tables'][T]['Insert']
 export type TablesUpdate<T extends keyof DefaultSchema['Tables']> =
