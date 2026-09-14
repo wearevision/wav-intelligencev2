@@ -113,8 +113,8 @@ export function StudyFilesSection({ studyId }: { studyId: string }) {
       {preview?.ok && (
         <div className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-4">
           <ul className="flex flex-col gap-1">
-            {preview.files.map((file) => (
-              <li key={file.filename} className="flex flex-wrap gap-x-3 text-xs">
+            {preview.files.map((file, i) => (
+              <li key={`${file.filename}-${i}`} className="flex flex-wrap gap-x-3 text-xs">
                 <span className="font-medium">{file.filename}</span>
                 <span className="text-muted">{intakeCopy.kind[file.kind]}</span>
                 {(file.message ?? intakeCopy.kindNote[file.kind]) && (
@@ -178,8 +178,8 @@ export function StudyFilesSection({ studyId }: { studyId: string }) {
 
           {plan && plan.warnings.length > 0 && (
             <ul className="flex flex-col gap-0.5">
-              {plan.warnings.map((w) => (
-                <li key={w} className="text-warn text-xs">
+              {plan.warnings.map((w, i) => (
+                <li key={`${w}-${i}`} className="text-warn text-xs">
                   {w}
                 </li>
               ))}
