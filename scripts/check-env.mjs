@@ -36,6 +36,7 @@ const problemas = []
 if (bruto.includes('\r')) problemas.push('El archivo tiene saltos de línea de Windows (CRLF).')
 
 const encontradas = new Map()
+const lineaDe = new Map()
 bruto.split('\n').forEach((linea, i) => {
   const limpia = linea.trim()
   if (limpia === '' || limpia.startsWith('#')) return
@@ -76,6 +77,25 @@ bruto.split('\n').forEach((linea, i) => {
     }
   }
   if (/^["'].*["']$/.test(valor)) problemas.push(`Línea ${i + 1}: «${clave}» tiene comillas; sobran.`)
+  // Una variable definida dos veces es peor que una mal escrita: el
+
+  // archivo se ve correcto, el chequeo la cuenta una vez, y cuál gana
+
+  // depende del cargador. El caso real fue una clave buena y una
+
+  // enmascarada conviviendo, con el error apareciendo doce pasos después.
+
+  if (lineaDe.has(clave)) {
+
+    problemas.push(
+
+      `«${clave}» está definida dos veces: líneas ${lineaDe.get(clave)} y ${i + 1}. Deja una sola.`,
+
+    )
+
+  }
+
+  lineaDe.set(clave, i + 1)
 
   encontradas.set(clave.trim(), valor)
 })
