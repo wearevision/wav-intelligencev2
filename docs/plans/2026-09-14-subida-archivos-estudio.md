@@ -52,7 +52,7 @@ varios archivos. El servidor los clasifica por contenido, nunca por nombre:
 | Tipo | Se reconoce por | En esta etapa |
 |---|---|---|
 | Convocatoria | `.xlsx` con al menos una hoja que tenga «Nombre» y columnas de horario | se interpreta (abajo) |
-| Respuestas de formulario | `.xlsx` cuya primera celda del encabezado es «Marca temporal» | se adjunta; se interpreta en D |
+| Respuestas de formulario | `.xlsx` cuya primera celda del encabezado es «Marca temporal» | se reconoce y se informa; no hay adjunto de etapa donde guardarlo; se interpreta en D |
 | Pauta | `.docx` | se adjunta como «Guía del focus»; se interpreta en C |
 | Otro | — | se rechaza diciendo qué se esperaba |
 
