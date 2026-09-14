@@ -29,7 +29,7 @@ import {
 const MAX_FILE_BYTES = 25 * 1024 * 1024
 
 const studyIdSchema = z.string().uuid()
-const fingerprintSchema = z.string().regex(/^[0-9a-f]{64}$/)
+const fingerprintSchema = z.union([z.literal(''), z.string().regex(/^[0-9a-f]{64}$/)])
 
 export interface StudyFileReport {
   filename: string

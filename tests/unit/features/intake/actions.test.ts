@@ -3,16 +3,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const rpc = vi.fn()
 const plans: unknown[] = []
 const surveySignature = vi.fn(() => false)
+const detectKind = vi.fn(() => 'roster')
+const attachStageFile = vi.fn(async () => ({ ok: true }))
+let queryRows: unknown[] = []
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/server/xlsx/read', () => ({ readWorkbook: vi.fn(async () => []) }))
-vi.mock('@/features/studies/server', () => ({ attachStageFile: vi.fn(async () => ({ ok: true })) }))
+vi.mock('@/features/studies/server', () => ({
+  attachStageFile: (...args: unknown[]) => attachStageFile(...(args as [])),
+}))
 vi.mock('@/features/intake/roster-sync', async (original) => {
   const actual = await original<typeof import('@/features/intake/roster-sync')>()
   return { ...actual, planRosterSync: vi.fn(() => plans.shift()) }
 })
 vi.mock('@/features/intake/detect', () => ({
-  detectStudyFile: vi.fn(() => 'roster'),
+  detectStudyFile: vi.fn(() => detectKind()),
   hasSurveySignature: vi.fn(() => surveySignature()),
 }))
 vi.mock('@/server/supabase/server', () => ({
@@ -22,7 +27,7 @@ vi.mock('@/server/supabase/server', () => ({
       const chain: Record<string, unknown> = {}
       for (const m of ['select', 'eq', 'in', 'not', 'limit']) chain[m] = () => chain
       chain.single = async () => ({ data: { fieldwork_start: '2026-06-02' }, error: null })
-      chain.then = (resolve: (v: unknown) => void) => resolve({ data: [], error: null })
+      chain.then = (resolve: (v: unknown) => void) => resolve({ data: queryRows, error: null })
       return chain
     },
   })),
@@ -67,6 +72,9 @@ beforeEach(() => {
   rpc.mockReset().mockResolvedValue({ error: null })
   surveySignature.mockReset().mockReturnValue(false)
   plans.length = 0
+  detectKind.mockReset().mockReturnValue('roster')
+  attachStageFile.mockClear()
+  queryRows = []
 })
 
 describe('applyStudyFiles', () => {
@@ -94,9 +102,22 @@ describe('applyStudyFiles', () => {
 
   it('rechaza una huella inválida sin llamar a la base', async () => {
     plans.push(planWith(1))
-    const result = await applyStudyFiles(STUDY_ID, form(), 'no-es-una-huella')
+    const result = await applyStudyFiles(STUDY_ID, form(), 'xyz')
     expect(result.ok).toBe(false)
     expect(rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('applyStudyFiles sin convocatoria', () => {
+  it('aplica una subida de solo guía sin huella y adjunta el original', async () => {
+    detectKind.mockReturnValue('guide')
+    queryRows = [{ id: 'file-1', study_stage_id: 'stage-1' }]
+    const f = new FormData()
+    f.append('files', new File([new Uint8Array([80, 75, 3, 4])], 'Guía.docx'))
+    const result = await applyStudyFiles(STUDY_ID, f, '')
+    expect(result.ok).toBe(true)
+    expect(rpc).not.toHaveBeenCalled()
+    expect(attachStageFile).toHaveBeenCalledTimes(1)
   })
 })
 
