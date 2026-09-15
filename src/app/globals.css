@@ -1,0 +1,43 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens semánticos. Ningún componente usa colores crudos ni escalas de Tailwind
+ * directamente: si hace falta un tono nuevo, se define acá.
+ */
+@theme {
+  --color-canvas: #fbfaf8;
+  --color-surface: #ffffff;
+  --color-sunken: #f3f1ed;
+  --color-border: #e4e1db;
+  --color-ink: #1c1b19;
+  --color-muted: #6f6c66;
+  --color-accent: #2f6f4f;
+  --color-accent-ink: #ffffff;
+  --color-danger: #a8402f;
+  --color-warn: #9a6b12;
+  --color-ok: #2f6f4f;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: #141413;
+    --color-surface: #1c1b1a;
+    --color-sunken: #232221;
+    --color-border: #33312e;
+    --color-ink: #eeece7;
+    --color-muted: #9b9791;
+    --color-accent: #6aa885;
+    --color-accent-ink: #10201a;
+    --color-danger: #e0806f;
+    --color-warn: #d6a850;
+    --color-ok: #6aa885;
+  }
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
