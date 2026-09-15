@@ -1369,11 +1369,11 @@ git commit -m "feat: sección Archivos del estudio reemplaza la importación de 
 
 **Precondiciones:** dev server de v2 corriendo; sesión admin; archivos en `/Volumes/SSD WAV/MG FG S2/_Contexto S2/`. La base es la única del proyecto: **preguntar al operador** en qué estudio probar (uno nuevo «MG FG S2» con inicio de terreno 2026-06-02, o uno de prueba) antes de aplicar nada.
 
-- [ ] **Paso 1:** en ese estudio, subir los tres archivos a la vez. Esperado en la vista previa:
+- [x] **Paso 1:** en ese estudio, subir los tres archivos a la vez. Esperado en la vista previa:
   - `Agenda Horarios.xlsx` → Convocatoria; `Guion Pauta S2.docx` → Pauta (nota de próxima etapa); `Respuestas Google Form….xlsx` → Respuestas del formulario (nota de próxima etapa).
   - 6 bloques `d1b1`…`d3b2` con fechas 2, 3 y 4 de junio a las 09:00 y 13:00 (hora de Chile).
   - Personas por bloque con sus micrófonos; avisos de micrófonos repetidos o notas si los hay.
-- [ ] **Paso 2:** Aplicar. Verificar por SQL (solo lectura) conteos por bloque y que ningún RUT/correo quedó en la base:
+- [x] **Paso 2:** Aplicar. Verificar por SQL (solo lectura) conteos por bloque y que ningún RUT/correo quedó en la base:
 
 ```sql
 select s.code, to_char(s.scheduled_at at time zone 'America/Santiago', 'YYYY-MM-DD HH24:MI') as local, count(p.id) as personas, count(p.mic_number) as con_mic, count(p.segment) as con_segmento
@@ -1381,6 +1381,8 @@ from public.sessions s left join public.participants p on p.session_id = s.id
 where s.study_id = '<STUDY_ID>' group by s.code, s.scheduled_at order by s.code;
 ```
 
-- [ ] **Paso 3:** Volver a subir la misma planilla. Esperado: todos los bloques existentes, `0 a agregar · 0 a actualizar · 0 a borrar`, sin «hora corregida».
-- [ ] **Paso 4:** Probar la huella: abrir la vista previa, cambiar un micrófono de un participante desde la sección de participantes en otra pestaña, y confirmar en la primera. Esperado: «El estudio cambió desde la vista previa…» y la vista previa nueva muestra la actualización.
-- [ ] **Paso 5:** Verificar que «Listado de invitados» y «Guía del focus» quedaron adjuntos en las etapas del estudio.
+- [x] **Paso 3:** Volver a subir la misma planilla. Esperado: todos los bloques existentes, `0 a agregar · 0 a actualizar · 0 a borrar`, sin «hora corregida».
+- [x] **Paso 4:** Probar la huella: abrir la vista previa, cambiar un micrófono de un participante desde la sección de participantes en otra pestaña, y confirmar en la primera. Esperado: «El estudio cambió desde la vista previa…» y la vista previa nueva muestra la actualización.
+- [x] **Paso 5:** Verificar que «Listado de invitados» y «Guía del focus» quedaron adjuntos en las etapas del estudio.
+
+**Verificado 2026-09-15** en estudio real `MG FG S2` (`30e41165-2aba-48b1-b272-af5e3811eebe`). Los 5 pasos pasaron sin hallazgos: conteos por bloque correctos, sin RUT/correo en `participants` (columnas no existen), re-subida idempotente, huella detectó el cambio externo, y adjuntos confirmados por SQL en `study_stage_files` (Diseño → Guía del focus, Convocatoria → Listado de invitados).
