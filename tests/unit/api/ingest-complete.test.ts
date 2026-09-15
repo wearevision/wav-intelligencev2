@@ -81,6 +81,34 @@ beforeEach(() => {
 })
 
 describe('extraSessionIds', () => {
+  it('acepta extraSessionIds null (lo que manda wav-ingest para un archivo sin sesión extra)', async () => {
+    // Bug real: LocalFile.extraSessionIds es `readonly string[] | null`, no
+    // opcional — wav-ingest siempre manda la clave, con `null` cuando no hay
+    // sesión extra. z.array(...).optional() solo acepta ausente/undefined,
+    // no null explícito, y esto rechazaba con 400 cualquier subida normal.
+    const { supabase, insertedMedia } = supabaseWithSessions([SESSION_A])
+    requireUser.mockResolvedValue({ user: { id: 'u1' }, supabase })
+
+    const res = await POST(
+      post({
+        studyId: STUDY,
+        media: [
+          {
+            sessionId: SESSION_A,
+            storageKey: KEY,
+            filename: 'mic01.wav',
+            kind: 'audio_mic',
+            bytes: 100,
+            extraSessionIds: null,
+          },
+        ],
+      }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(insertedMedia).toHaveLength(1)
+  })
+
   it('inserta el vínculo extra cuando la sesión pertenece al estudio', async () => {
     const { supabase, insertedBridge } = supabaseWithSessions([SESSION_A, SESSION_B])
     requireUser.mockResolvedValue({ user: { id: 'u1' }, supabase })

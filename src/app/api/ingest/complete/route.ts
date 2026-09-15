@@ -23,7 +23,7 @@ const mediaSchema = z.object({
   durationSeconds: z.number().int().min(0).nullish(),
   recordingKey: z.string().trim().min(1).max(200).nullish(),
   partNumber: z.number().int().min(1).max(999).nullish(),
-  extraSessionIds: z.array(z.uuid()).max(1).optional(),
+  extraSessionIds: z.array(z.uuid()).max(1).nullish(),
   recordedAt: z.iso.datetime().nullish(),
   checksum: z.string().trim().min(1).max(200).nullish(),
   // Dónde quedó el master que nunca subió (D19). Sin esto, en dos años nadie
