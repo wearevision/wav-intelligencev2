@@ -38,7 +38,7 @@ Si una decisión de arquitectura cambia, se edita `ARCHITECTURE.md` en el mismo 
 | Recurso | Valor |
 |---|---|
 | Supabase | `lrnaiwilairvvnqlyxdq` · us-east-1 · org WAV |
-| R2 | pendiente (F1) |
+| R2 | configurado en `.env.local` (las cuatro `R2_*`); el bucket no se nombra acá porque este repo es público |
 
 Las migraciones se nombran `YYYYMMDDHHMMSS_slug.sql`, no `001`, `002`. Con timestamps
 dos ramas en paralelo no pueden colisionar en el mismo número — que es exactamente lo
@@ -46,6 +46,36 @@ que pasó en el repo anterior.
 
 Después de todo DDL, correr los advisors de Supabase (seguridad y rendimiento) y
 dejar el resultado limpio antes de commitear.
+
+### Credenciales
+
+Este repo es **público**. Ninguna credencial entra en un archivo trackeado: viven
+solo en `.env.local`, que está en `.gitignore`. `npm run check:env` valida el
+archivo antes de arrancar.
+
+Tres cosas que costaron una tarde entera y no se vuelven a descubrir:
+
+1. **El proyecto de Supabase es `lrnaiwilairvvnqlyxdq`.** El repo anterior
+   (`wav-intelligence`) apunta a otro proyecto. Si la app dice *Invalid API key*
+   o *Invalid login credentials*, lo primero es comparar el `ref` de la URL con el
+   `ref` que trae la clave — no cambiar la contraseña del usuario.
+2. **El dashboard de Supabase muestra la clave enmascarada.** Lo que se ve en
+   pantalla trae `•` (U+2022) en el medio; seleccionarla con el mouse copia los
+   bullets. Un `•` en un header HTTP hace que WebKit tire *"The string did not
+   match the expected pattern"* y que Node tire *"Cannot convert argument to a
+   ByteString"*. **Solo el botón de copiar del dashboard entrega la clave real.**
+   `check:env` ya caza este caso y avisa en qué línea está el bullet.
+3. **Una credencial no viaja por un chat con un agente.** Lo que se pega en un
+   chat con Claude (o cualquier asistente remoto) puede llegar enmascarado del
+   otro lado, y lo que el agente escriba de vuelta llega enmascarado acá. La
+   clave la pone una persona en `.env.local`, o un agente que corra **en la
+   misma máquina** que el archivo. Un agente remoto nunca puede verificar que la
+   clave que leyó es la clave que existe.
+
+Corolario operativo: cuando algo de auth falla, el orden de diagnóstico es
+`ref` de la URL → `ref` de la clave → largo de la clave → sesión → datos. Nunca
+empieza por la contraseña. La app de escritorio implementa exactamente ese orden
+en su botón *Probar conexión*.
 
 ## Reglas duras
 
