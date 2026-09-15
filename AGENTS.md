@@ -114,3 +114,12 @@ estudio, adjuntar, avanzar etapa— se prueba a mano contra Supabase.
 - `CLAUDE.md` es un puntero a este archivo; edita este
 - **Mantén este archivo corto.** Describe reglas, no inventario de código — el
   inventario se lee del código, y un archivo de 900 líneas nadie lo respeta.
+
+## Nota para wav-ingest
+
+`wav-ingest` (app de escritorio) depende por default de `http://localhost:3000`
+para hablar con **wav-intelligence v1**, no con este repo. Si se deja el dev
+server de v2 corriendo en `:3000` mientras se prueba WAV Ingest, la app lo
+detecta como backend equivocado y bloquea con un aviso — no es un bug, es el
+comportamiento esperado (ver `wav-ingest/AGENTS.md` y
+`wav-ingest/docs/superpowers/specs/2026-09-15-backend-health-design.md`).
