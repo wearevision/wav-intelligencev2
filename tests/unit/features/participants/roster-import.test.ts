@@ -216,7 +216,7 @@ describe('parseRosterWorkbook · avisos', () => {
 
     expect(dia!.people.find((p) => p.name === 'Ana Silva')!.segment).toBeNull()
     expect(dia!.warnings).toContain(
-      'Ana Silva: segmento «Quizás» no reconocido. Entra sin segmento.',
+      'Ana Silva: no se entendió el segmento («Quizás»). Entra sin segmento.',
     )
     expect(dia!.warnings.some((w) => w.includes('Bruno Pardo'))).toBe(false)
   })
@@ -376,7 +376,10 @@ describe('parseRosterWorkbook · una columna que no se encontró', () => {
   it('un segmento escrito de una forma que no se entiende se avisa, no se ignora', () => {
     const hoja: SheetInput = {
       title: 'Junio 2',
-      rows: [ENCABEZADO, fila('Ana Silva', 5, true, false, 'Usuaria MG', 'ASISTIÓ', 'Entrevistado')],
+      rows: [
+        ENCABEZADO,
+        fila('Ana Silva', 5, true, false, 'Usuaria MG', 'ASISTIÓ', 'Entrevistado'),
+      ],
     }
     const [dia] = parseRosterWorkbook([hoja])
 

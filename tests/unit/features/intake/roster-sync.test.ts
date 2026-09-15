@@ -10,7 +10,15 @@ import {
 import type { ImportedDay } from '@/features/participants'
 
 function day(title: string, people: ImportedDay['people'], warnings: string[] = []): ImportedDay {
-  return { title, dayNumber: 0, blockLabels: ['09:00', '13:00PM'], people, warnings, absent: 0 }
+  return {
+    title,
+    dayNumber: 0,
+    blockLabels: ['09:00', '13:00PM'],
+    headers: [],
+    people,
+    warnings,
+    absent: 0,
+  }
 }
 
 const person = (
@@ -213,6 +221,7 @@ describe('planRosterSync', () => {
       title: 'Resumen',
       dayNumber: 0,
       blockLabels: [],
+      headers: [],
       people: [],
       warnings: ['x'],
       absent: 0,
