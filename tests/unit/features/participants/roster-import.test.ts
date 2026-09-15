@@ -6,6 +6,7 @@ import {
   readMic,
   roleFromLabel,
   segmentFromLabel,
+  type Cell,
   type SheetInput,
 } from '@/features/participants/roster-import'
 
@@ -291,5 +292,74 @@ describe('parseRosterWorkbook · la hora como Date', () => {
       [2, 6],
     ])
     expect(dia!.warnings).toEqual([])
+  })
+})
+
+describe('parseRosterWorkbook · una columna que no se encontró', () => {
+  /**
+   * El caso real: seis bloques importados, ochenta personas, y el segmento
+   * —cliente / no cliente— vacío en todas. La planilla lo tenía; el encabezado
+   * se llamaba de otra forma y el buscador no lo reconoció. El importador no
+   * dijo nada: de las cuatro cosas que entran de la planilla (nombre,
+   * micrófono, rol, segmento) faltaba una entera y el resultado se veía bien.
+   *
+   * Nombrar los encabezados que sí se vieron es lo que convierte "está vacío"
+   * en "se llama así".
+   */
+  function sinColumna(nombre: string): SheetInput {
+    const at = ENCABEZADO.indexOf(nombre)
+    const quitar = (row: Cell[]) => row.map((c, i) => (i === at ? null : c))
+    return {
+      title: 'Junio 2',
+      rows: [
+        quitar(ENCABEZADO),
+        quitar(fila('Ana Silva', 5, true, false, 'NO', 'ASISTIÓ', 'Entrevistado')),
+      ],
+    }
+  }
+
+  it('avisa cuando falta la columna de segmento y dice qué encabezados vio', () => {
+    const [dia] = parseRosterWorkbook([sinColumna('Cliente / NO Cliente')])
+
+    expect(dia!.people[0]!.segment).toBeNull()
+    expect(dia!.warnings.join(' ')).toContain('cliente / no cliente')
+    expect(dia!.headers).toContain('N° Micrófono')
+    expect(dia!.headers).not.toContain('Cliente / NO Cliente')
+  })
+
+  it('avisa cuando falta la columna de micrófono', () => {
+    const [dia] = parseRosterWorkbook([sinColumna('N° Micrófono')])
+
+    expect(dia!.people[0]!.micNumber).toBeNull()
+    expect(dia!.warnings.join(' ')).toContain('micrófono')
+  })
+
+  it('avisa cuando falta la columna de rol: sin ella todos entran como invitados', () => {
+    const [dia] = parseRosterWorkbook([sinColumna('ROL')])
+
+    expect(dia!.people[0]!.role).toBe('participant')
+    expect(dia!.warnings.join(' ')).toContain('rol')
+  })
+
+  it('con todas las columnas presentes no avisa de ninguna', () => {
+    const [dia] = parseRosterWorkbook([HOJA])
+    expect(dia!.warnings.filter((w) => w.includes('No se encontró la columna'))).toEqual([])
+    expect(dia!.headers).toContain('Cliente / NO Cliente')
+  })
+
+  it('un segmento escrito de una forma que no se entiende se avisa, no se ignora', () => {
+    const hoja: SheetInput = {
+      title: 'Junio 2',
+      rows: [ENCABEZADO, fila('Ana Silva', 5, true, false, 'Usuaria MG', 'ASISTIÓ', 'Entrevistado')],
+    }
+    const [dia] = parseRosterWorkbook([hoja])
+
+    expect(dia!.people[0]!.segment).toBeNull()
+    expect(dia!.warnings.join(' ')).toContain('Usuaria MG')
+  })
+
+  it('una hoja sin encabezado también devuelve los encabezados vacíos', () => {
+    const [dia] = parseRosterWorkbook([{ title: 'Notas', rows: [['algo']] }])
+    expect(dia!.headers).toEqual([])
   })
 })

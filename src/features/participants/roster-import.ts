@@ -35,6 +35,12 @@ export interface ImportedDay {
   dayNumber: number
   /** Los encabezados de horario, en orden: son los bloques del día. */
   blockLabels: string[]
+  /**
+   * Todos los encabezados no vacíos de la fila de encabezados, tal como venían.
+   * Sirve para responder «¿cómo se llama esa columna en tu planilla?» sin tener
+   * que abrirla.
+   */
+  headers: string[]
   people: ImportedPerson[]
   /** Lo que hubo que decidir y conviene mirar antes de importar. */
   warnings: string[]
@@ -81,9 +87,11 @@ export function roleFromLabel(label: string): ParticipantRole {
  * `CLIENTE` / `NO` para los invitados; `WAV` y `MG` marcan a la agencia y a la
  * marca, que no tienen segmento.
  */
+const NO_SEGMENT = new Set(['wav', 'mg', ''])
+
 export function segmentFromLabel(label: string): Segment | null {
   const folded = fold(label)
-  if (folded === 'wav' || folded === 'mg' || folded === '') return null
+  if (NO_SEGMENT.has(folded)) return null
   if (folded.startsWith('no')) return 'non_client'
   if (folded.startsWith('cliente')) return 'client'
   return null
@@ -157,6 +165,24 @@ interface Columns {
   blocks: { label: string; index: number }[]
 }
 
+/**
+ * Las tres columnas cuya ausencia hay que decir en voz alta.
+ *
+ * El caso real: seis bloques importados y el segmento vacío en las ochenta
+ * personas. La planilla lo traía; el encabezado se llamaba distinto y el
+ * buscador no lo reconoció. Nadie avisó, porque «no encontré la columna» y
+ * «la columna estaba vacía» producían el mismo resultado en pantalla.
+ *
+ * De las cuatro cosas que entran de la planilla —nombre, micrófono, rol y
+ * segmento— el nombre ya se reporta al no encontrar el encabezado. Estas tres
+ * faltaban en silencio.
+ */
+const NAMED_COLUMNS: { key: 'mic' | 'role' | 'segment'; what: string; looksLike: string }[] = [
+  { key: 'mic', what: 'micrófono', looksLike: 'micrófono' },
+  { key: 'role', what: 'rol', looksLike: 'rol' },
+  { key: 'segment', what: 'segmento', looksLike: 'cliente / no cliente' },
+]
+
 const TIME = /^\d{1,2}[:.]\d{2}/
 
 function locateColumns(header: Cell[]): Columns | null {
@@ -198,6 +224,7 @@ function parseSheet(sheet: SheetInput, dayNumber: number): ImportedDay {
       title: sheet.title,
       dayNumber,
       blockLabels: [],
+      headers: [],
       people: [],
       warnings: ['No se encontró la fila de encabezados con «Nombre» y las horas.'],
       absent: 0,
@@ -206,6 +233,16 @@ function parseSheet(sheet: SheetInput, dayNumber: number): ImportedDay {
 
   const columns = locateColumns(sheet.rows[headerIndex]!)!
   const blockLabels = columns.blocks.map((b) => b.label)
+  const headers = sheet.rows[headerIndex]!.map(text).filter((h) => h !== '')
+
+  for (const { key, what, looksLike } of NAMED_COLUMNS) {
+    if (columns[key] !== null) continue
+    warnings.push(
+      `No se encontró la columna de ${what} (se busca un encabezado que diga «${looksLike}»). ` +
+        `Los encabezados de esta hoja son: ${headers.join(' · ')}.`,
+    )
+  }
+
   const people: ImportedPerson[] = []
   // Un micrófono por persona dentro de un bloque; el segundo se deja sin
   // asignar en vez de dejar que la base rechace la importación entera.
@@ -232,10 +269,16 @@ function parseSheet(sheet: SheetInput, dayNumber: number): ImportedDay {
     }
 
     const role = columns.role === null ? 'participant' : roleFromLabel(text(row[columns.role]))
-    const segment =
-      role === 'participant' && columns.segment !== null
-        ? segmentFromLabel(text(row[columns.segment]))
-        : null
+    let segment: Segment | null = null
+    if (role === 'participant' && columns.segment !== null) {
+      const raw = text(row[columns.segment])
+      segment = segmentFromLabel(raw)
+      // `WAV` y `MG` son ausencias por diseño; cualquier otra cosa escrita que
+      // no se entienda es un dato que se estaba perdiendo sin decirlo.
+      if (segment === null && !NO_SEGMENT.has(fold(raw))) {
+        warnings.push(`${name}: no se entendió el segmento («${raw}»). Entra sin segmento.`)
+      }
+    }
     const mic = columns.mic === null ? { byBlock: new Map(), note: null } : readMic(row[columns.mic], blockLabels.length)
 
     if (mic.note !== null) {
@@ -259,5 +302,5 @@ function parseSheet(sheet: SheetInput, dayNumber: number): ImportedDay {
     }
   }
 
-  return { title: sheet.title, dayNumber, blockLabels, people, warnings, absent }
+  return { title: sheet.title, dayNumber, blockLabels, headers, people, warnings, absent }
 }
